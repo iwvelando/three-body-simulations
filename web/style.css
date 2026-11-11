@@ -767,6 +767,12 @@ thead th {
 .surface .moment-when {
   text-align: center;
 }
+.surface-readout {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  min-height: 26rem;
+}
 .surface .chart {
   max-width: 26rem;
 }

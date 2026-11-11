@@ -1,6 +1,11 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-async function open(page: Page, hash: string) {
+// Waits for the first landscape unless told not to.
+async function open(
+  page: Page,
+  hash: string,
+  settle = hash.includes("/surface"),
+) {
   const problems: string[] = [];
   page.on("console", (m) => {
     if (m.type() === "error") problems.push(m.text());
@@ -16,6 +21,10 @@ async function open(page: Page, hash: string) {
   await expect(page.locator('html[data-engine="ready"]')).toBeAttached({
     timeout: 30_000,
   });
+  if (settle)
+    await expect(page.getByTestId("surface-outcome")).toBeVisible({
+      timeout: 30_000,
+    });
   return problems;
 }
 async function slide(slider: Locator, value: number) {
@@ -190,7 +199,8 @@ test("dragging a setting does not queue a run for every position", async ({
     };
   });
   await open(page, "#/earth/surface?scene=crater&rain=1&duration=20");
-  await expect(outcome(page)).toBeVisible();
+  // A twenty-million-year run takes seconds on a small machine.
+  await expect(outcome(page)).toBeVisible({ timeout: 30_000 });
   const before = await page.evaluate(() => (window as any).__runs);
   // Twelve positions in quick succession, each a run of a second or more.
   for (let k = 1; k <= 12; k++) {
@@ -241,4 +251,18 @@ test("the elapsed time keeps its width while playing", async ({ page }) => {
   expect(
     await page.evaluate(() => [...(window as any).__lengths]),
   ).toHaveLength(1);
+});
+
+test("the settings do not jump when the first landscape arrives", async ({
+  page,
+}) => {
+  // A control that moves as the page fills in gets mis-tapped.
+  await open(page, "#/earth/surface", false);
+  const radio = page.getByRole("radio", { name: "Three mountains" });
+  await radio.waitFor();
+  const before = (await radio.boundingBox())!;
+  await expect(outcome(page)).toBeVisible({ timeout: 30_000 });
+  const after = (await radio.boundingBox())!;
+  expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+  expect(Math.abs(after.x - before.x)).toBeLessThan(2);
 });

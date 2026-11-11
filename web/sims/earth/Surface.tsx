@@ -260,121 +260,128 @@ export function Surface({ engine, rest }: { engine: Engine; rest: string }) {
       </p>
       <div className="surface-grid">
         <section className="stage" aria-busy={busy}>
-          {land && (
+          {/* The land's box and the readout below it keep their room while
+              the first landscape is computed, so the settings never move. */}
+          {land ? (
             <Terrain
               land={land}
               label={`${scene.label}, ${elapsed(mix(run!.times)).toLowerCase()}`}
             />
+          ) : (
+            <div className="terrain" />
           )}
-          {run && (
-            <>
-              <p className="moment-when" data-testid="surface-when">
-                {elapsed(mix(run.times))}
-              </p>
-              <div className="transport">
-                <button
-                  type="button"
-                  className="play"
-                  onClick={() => {
-                    if (!playing && at >= last) setFrame(0);
-                    setPlaying(!playing);
-                  }}
-                >
-                  {playing ? "Pause" : "Play"}
-                </button>
-                <input
-                  type="range"
-                  aria-label="Time elapsed"
-                  min={0}
-                  max={last}
-                  step={1}
-                  value={at}
-                  onChange={(e) => {
-                    setPlaying(false);
-                    setFrame(Number(e.target.value));
-                  }}
-                />
-              </div>
-              {mountains ? (
-                <>
-                  <p
-                    className="verdict"
-                    data-testid="surface-outcome"
-                    data-rain={number(run.params.rain)}
+          <div className="surface-readout">
+            {run && (
+              <>
+                <p className="moment-when" data-testid="surface-when">
+                  {elapsed(mix(run.times))}
+                </p>
+                <div className="transport">
+                  <button
+                    type="button"
+                    className="play"
+                    onClick={() => {
+                      if (!playing && at >= last) setFrame(0);
+                      setPlaying(!playing);
+                    }}
                   >
-                    The bare mountain stands{" "}
-                    <span data-testid="peak-bare">
-                      {meters(mix(run.peaks![2]))}
-                    </span>{" "}
-                    high; the two under vegetation,{" "}
-                    <span data-testid="peak-covered">
-                      {meters((mix(run.peaks![0]) + mix(run.peaks![1])) / 2)}
-                    </span>
-                    . All three began at {meters(run.peaks![2][0])}.
-                  </p>
-                  <figure className="chart">
-                    <figcaption>
-                      <span className="chart-title">Summit height</span>
-                      <span className="chart-unit">meters</span>
-                      <span className="chart-values">
-                        <span>
-                          <i className="key living" />
-                          Under vegetation
-                        </span>
-                        <span>
-                          <i className="key lifeless" />
-                          Bare
-                        </span>
+                    {playing ? "Pause" : "Play"}
+                  </button>
+                  <input
+                    type="range"
+                    aria-label="Time elapsed"
+                    min={0}
+                    max={last}
+                    step={1}
+                    value={at}
+                    onChange={(e) => {
+                      setPlaying(false);
+                      setFrame(Number(e.target.value));
+                    }}
+                  />
+                </div>
+                {mountains ? (
+                  <>
+                    <p
+                      className="verdict"
+                      data-testid="surface-outcome"
+                      data-rain={number(run.params.rain)}
+                    >
+                      The bare mountain stands{" "}
+                      <span data-testid="peak-bare">
+                        {meters(mix(run.peaks![2]))}
+                      </span>{" "}
+                      high; the two under vegetation,{" "}
+                      <span data-testid="peak-covered">
+                        {meters((mix(run.peaks![0]) + mix(run.peaks![1])) / 2)}
                       </span>
-                    </figcaption>
-                    <Trend
-                      times={run.times}
-                      at={mix(run.times)}
-                      lines={[
-                        { name: "a", kind: "living", values: run.peaks![0] },
-                        {
-                          name: "bare",
-                          kind: "lifeless",
-                          values: run.peaks![2],
-                        },
-                      ]}
-                    />
-                  </figure>
-                </>
-              ) : (
-                <>
-                  <p
-                    className="verdict"
-                    data-testid="surface-outcome"
-                    data-rain={number(run.params.rain)}
-                  >
-                    {mix(run.relief) < 10
-                      ? "The crater is gone: its rim worn off and its bowl filled."
-                      : `The crater's rim stands ${meters(mix(run.relief))} above its floor. It began at ${meters(run.relief[0])}.`}
-                  </p>
-                  <figure className="chart">
-                    <figcaption>
-                      <span className="chart-title">
-                        Crater rim above floor
-                      </span>
-                      <span className="chart-unit">meters</span>
-                    </figcaption>
-                    <Trend
-                      times={run.times}
-                      at={mix(run.times)}
-                      lines={[
-                        {
-                          name: "relief",
-                          kind: run.params.cover > 0.5 ? "living" : "lifeless",
-                          values: run.relief,
-                        },
-                      ]}
-                    />
-                  </figure>
-                </>
-              )}
-            </>
-          )}
+                      . All three began at {meters(run.peaks![2][0])}.
+                    </p>
+                    <figure className="chart">
+                      <figcaption>
+                        <span className="chart-title">Summit height</span>
+                        <span className="chart-unit">meters</span>
+                        <span className="chart-values">
+                          <span>
+                            <i className="key living" />
+                            Under vegetation
+                          </span>
+                          <span>
+                            <i className="key lifeless" />
+                            Bare
+                          </span>
+                        </span>
+                      </figcaption>
+                      <Trend
+                        times={run.times}
+                        at={mix(run.times)}
+                        lines={[
+                          { name: "a", kind: "living", values: run.peaks![0] },
+                          {
+                            name: "bare",
+                            kind: "lifeless",
+                            values: run.peaks![2],
+                          },
+                        ]}
+                      />
+                    </figure>
+                  </>
+                ) : (
+                  <>
+                    <p
+                      className="verdict"
+                      data-testid="surface-outcome"
+                      data-rain={number(run.params.rain)}
+                    >
+                      {mix(run.relief) < 10
+                        ? "The crater is gone: its rim worn off and its bowl filled."
+                        : `The crater's rim stands ${meters(mix(run.relief))} above its floor. It began at ${meters(run.relief[0])}.`}
+                    </p>
+                    <figure className="chart">
+                      <figcaption>
+                        <span className="chart-title">
+                          Crater rim above floor
+                        </span>
+                        <span className="chart-unit">meters</span>
+                      </figcaption>
+                      <Trend
+                        times={run.times}
+                        at={mix(run.times)}
+                        lines={[
+                          {
+                            name: "relief",
+                            kind:
+                              run.params.cover > 0.5 ? "living" : "lifeless",
+                            values: run.relief,
+                          },
+                        ]}
+                      />
+                    </figure>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </section>
         <form className="panel" onSubmit={(e) => e.preventDefault()}>
           <fieldset className="presets">

@@ -59,8 +59,8 @@ float noise(vec3 x) {
 }
 float fbm(vec3 p) {
   float a = 0.5, s = 0.0;
-  for (int i = 0; i < 5; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; }
-  return s / 0.96875;
+  for (int i = 0; i < 4; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; }
+  return s / 0.9375;
 }
 
 void main() {
@@ -72,8 +72,11 @@ void main() {
   vec3 rock = mix(vec3(0.42, 0.37, 0.31), vec3(0.62, 0.52, 0.38), fine);
   vec3 parched = mix(vec3(0.72, 0.42, 0.16), vec3(0.88, 0.62, 0.30), fine);
   vec3 land = mix(rock, parched, uArid);
-  float grows = uVeg * (1.0 - smoothstep(0.62, 0.9, lat)) * smoothstep(0.25, 0.6, fbm(vPos * 4.0 + 9.0));
-  land = mix(land, mix(vec3(0.16, 0.34, 0.16), vec3(0.30, 0.44, 0.20), fine), grows);
+  // Each layer is skipped when it would not show: the noise is the cost.
+  if (uVeg > 0.001) {
+    float grows = uVeg * (1.0 - smoothstep(0.62, 0.9, lat)) * smoothstep(0.25, 0.6, fbm(vPos * 4.0 + 9.0));
+    land = mix(land, mix(vec3(0.16, 0.34, 0.16), vec3(0.30, 0.44, 0.20), fine), grows);
+  }
   land *= 0.75 + 0.5 * h;
 
   // Sea level sits where the given share of the noise falls below it.
@@ -90,13 +93,18 @@ void main() {
   float glint = (1.0 - shore) * (1.0 - cap) * pow(max(dot(reflect(-normalize(uLight), n), vView), 0.0), 40.0) * step(0.001, uSea);
   vec3 lit = surface * (0.06 + 0.94 * day) + glint * 0.5;
 
-  float veil = uCloud * smoothstep(0.52, 0.72, fbm(vPos * 3.2 + vec3(uTime * 0.02, 0.0, uTime * 0.013)));
-  lit = mix(lit, vec3(0.96) * (0.1 + 0.9 * day), veil * 0.75);
+  if (uCloud > 0.001) {
+    float veil = uCloud * smoothstep(0.52, 0.72, fbm(vPos * 3.2 + vec3(uTime * 0.02, 0.0, uTime * 0.013)));
+    lit = mix(lit, vec3(0.96) * (0.1 + 0.9 * day), veil * 0.75);
+  }
 
   // Molten: dark crust riven with glowing seams, lit from within.
-  float seams = pow(1.0 - abs(fbm(vPos * 3.4 + uTime * 0.01) - 0.5) * 2.0, 7.0);
-  vec3 magma = vec3(0.10, 0.03, 0.02) + vec3(1.0, 0.36, 0.05) * (seams * 1.6 + 0.22) + vec3(1.0, 0.8, 0.3) * pow(seams, 3.0);
-  vec3 color = mix(lit, magma, uMelt);
+  vec3 color = lit;
+  if (uMelt > 0.001) {
+    float seams = pow(1.0 - abs(fbm(vPos * 3.4 + uTime * 0.01) - 0.5) * 2.0, 7.0);
+    vec3 magma = vec3(0.10, 0.03, 0.02) + vec3(1.0, 0.36, 0.05) * (seams * 1.6 + 0.22) + vec3(1.0, 0.8, 0.3) * pow(seams, 3.0);
+    color = mix(lit, magma, uMelt);
+  }
 
   float rim = pow(1.0 - max(dot(n, vView), 0.0), 2.6);
   color += uAir * rim * (0.25 + 0.75 * day) * 0.9;
@@ -154,6 +162,20 @@ export function Globe({ look, label }: { look: Look; label: string }) {
     scene.add(planet);
 
     const still = matchMedia("(prefers-reduced-motion: reduce)");
+    // The globe is drawn only when something has changed. It turns slowly
+    // by itself, which means every frame, unless the visitor prefers
+    // reduced motion, the globe is off screen, or frames are coming so
+    // slowly (no graphics hardware) that spinning would bog the page down.
+    let stale = true,
+      seen = true,
+      struggling = false,
+      slowFrames = 0,
+      drawn: Look | null = null;
+    const watcher = new IntersectionObserver(([entry]) => {
+      seen = entry.isIntersecting;
+      stale = true;
+    });
+    watcher.observe(element);
     const resize = () => {
       const size = Math.max(
         1,
@@ -161,6 +183,7 @@ export function Globe({ look, label }: { look: Look; label: string }) {
       );
       renderer.setSize(size, size, false);
       canvas.style.width = canvas.style.height = `${size}px`;
+      stale = true;
     };
     const observer = new ResizeObserver(resize);
     observer.observe(element);
@@ -182,6 +205,7 @@ export function Globe({ look, label }: { look: Look; label: string }) {
       tilt = Math.max(-1.2, Math.min(1.2, tilt + (e.clientY - lastY) * 0.006));
       lastX = e.clientX;
       lastY = e.clientY;
+      stale = true;
     };
     const up = () => (dragging = false);
     canvas.addEventListener("pointerdown", down);
@@ -190,17 +214,27 @@ export function Globe({ look, label }: { look: Look; label: string }) {
     canvas.addEventListener("pointercancel", up);
 
     let frame = 0,
+      frames = 0,
       before = performance.now(),
       clock = 0;
     const draw = (now: number) => {
-      const dt = Math.min(0.1, (now - before) / 1000);
+      frame = requestAnimationFrame(draw);
+      const gap = now - before;
+      const dt = Math.min(0.1, gap / 1000);
       before = now;
-      if (!still.matches) {
+      const spinning = seen && !still.matches && !struggling;
+      if (spinning) {
+        // Four frames in a row a tenth of a second apart: stop spinning.
+        slowFrames = gap > 100 ? slowFrames + 1 : 0;
+        if (slowFrames >= 4) struggling = true;
         clock += dt;
         if (!dragging) planet.rotation.y += dt * 0.06;
       }
-      planet.rotation.x = tilt;
       const l = current.current;
+      if (!seen || (!spinning && !stale && l === drawn)) return;
+      stale = false;
+      drawn = l;
+      planet.rotation.x = tilt;
       uniforms.uMelt.value = l.melt;
       uniforms.uSea.value = l.sea;
       uniforms.uIce.value = l.ice;
@@ -210,12 +244,13 @@ export function Globe({ look, label }: { look: Look; label: string }) {
       uniforms.uTime.value = clock;
       uniforms.uAir.value.setRGB(l.air[0], l.air[1], l.air[2]);
       renderer.render(scene, camera);
-      frame = requestAnimationFrame(draw);
+      element.dataset.frames = String(++frames);
     };
     frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      watcher.disconnect();
       geometry.dispose();
       material.dispose();
       renderer.dispose();

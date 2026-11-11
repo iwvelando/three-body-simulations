@@ -319,3 +319,21 @@ test("every eon is named in full beside the timeline", async ({ page }) => {
     "Hadean",
   );
 });
+
+test("a still globe is not redrawn", async ({ page }) => {
+  // With reduced motion nothing on the planet moves by itself, so it must
+  // cost nothing until something changes. (Without graphics hardware the
+  // globe stops spinning for the same reason.)
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const frames = async () =>
+    Number(await page.locator(".globe").first().getAttribute("data-frames"));
+  await expect.poll(frames).toBeGreaterThan(0);
+  await page.waitForTimeout(500);
+  const settled = await frames();
+  await page.waitForTimeout(1000);
+  expect(await frames()).toBe(settled);
+  await slide(page.getByRole("slider", { name: "Time" }), 200);
+  await expect.poll(frames).toBeGreaterThan(settled);
+});
