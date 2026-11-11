@@ -40,6 +40,7 @@ async function panel(page: Page) {
 
 test("home lists the Earth simulation and opens it", async ({ page }) => {
   const problems = await open(page, "");
+  await page.getByRole("button", { name: /show the simulations/i }).click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Three-Body Simulations" }),
   ).toBeVisible();

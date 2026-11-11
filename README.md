@@ -18,6 +18,12 @@ In *The Three-Body Problem* a player who goes by Mozi explains an unreliable sun
 
 The novel gives no numbers, so everything about this machine is invented and marked speculative. It is the machine alone, not a test of it against a real sky. See [its models](docs/models-mozi.md).
 
+## Into two dimensions
+
+At the end of *Death's End* a slip of flat space arrives and the Solar System falls into it. This page drops things into that plane: the Sun and each planet, a picture of your own, and the whole system at once. One number, how thin flat matter is spread, sets every size; two rules for how matter lands can be swapped. A picture can be let fall alone or left buried in Pluto, then restored by running the rule backwards.
+
+Everything about the fall is invented and marked speculative; the bodies' layers and the snow crystals are from published work. The novel's own numbers ask for four different thicknesses, and the page says so. See [its models](docs/models-flat.md).
+
 ## Run it
 
 Node 22.12+ and Go 1.25+.
@@ -38,12 +44,14 @@ make preview-lan   # HTTPS on the local network, for a phone
 | `engine/earth/terrain` | The surface patch: erosion, creep and vegetation |
 | `engine/earth/chance` | The ensemble of random planets |
 | `engine/mozi` | Mozi's machine: shells, gears, the clerk's calendar |
+| `engine/flat` | The fall into two dimensions: bodies, the sky, snow crystals, a picture's flow |
 | `engine/api.go` | JSON front door for every simulation |
 | `cmd/wasm` | WebAssembly transport only |
 | `web/shell` | Site shell, simulation registry, engine client |
 | `web/sims/earth` | The Earth page: globe, timeline, panel, charts, sources |
 | `web/sims/mozi` | Mozi's machine: the clerk's sky, the cutaway, the calendar |
-| `docs/` | [Architecture](docs/architecture.md), models and sources for [Earth](docs/models.md) and [Mozi's machine](docs/models-mozi.md) |
+| `web/sims/flat` | Into two dimensions: a body falls, a painting, the whole sky |
+| `docs/` | [Architecture](docs/architecture.md), models and sources for [Earth](docs/models.md), [Mozi's machine](docs/models-mozi.md) and [the fall into two dimensions](docs/models-flat.md) |
 
 More simulations from the trilogy are meant to follow; [AGENTS.md](AGENTS.md) says how to add one.
 

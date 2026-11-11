@@ -30,6 +30,25 @@ func main() {
 		}
 		return map[string]any{"json": meta, "heights": floats(heights), "cover": floats(cover)}
 	}))
+	// Pictures go in and come out as Uint8Arrays beside the JSON:
+	// (json, bytes?) gives { json, bytes }, or the refusal JSON alone.
+	js.Global().Set("threeBodyBytes", js.FuncOf(func(this js.Value, args []js.Value) any {
+		if len(args) < 1 || len(args) > 2 || args[0].Type() != js.TypeString {
+			return `{"error":"Expected a JSON string and, at most, bytes.","field":""}`
+		}
+		var in []byte
+		if len(args) == 2 && args[1].InstanceOf(js.Global().Get("Uint8Array")) {
+			in = make([]byte, args[1].Length())
+			js.CopyBytesToGo(in, args[1])
+		}
+		meta, out := engine.Bytes(args[0].String(), in)
+		if out == nil {
+			return meta
+		}
+		bytes := js.Global().Get("Uint8Array").New(len(out))
+		js.CopyBytesToJS(bytes, out)
+		return map[string]any{"json": meta, "bytes": bytes}
+	}))
 	select {}
 }
 

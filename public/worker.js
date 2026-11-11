@@ -32,6 +32,18 @@ onmessage = ({ data }) => {
         result.cover = reply.cover;
         transfer.push(reply.heights.buffer, reply.cover.buffer);
       }
+    } else if (
+      data.request.action === "painting" ||
+      data.request.action === "snowflakes"
+    ) {
+      // Pictures travel as bytes in both directions.
+      const reply = threeBodyBytes(JSON.stringify(data.request), data.bytes);
+      if (typeof reply === "string") result = JSON.parse(reply);
+      else {
+        result = JSON.parse(reply.json);
+        result.bytes = reply.bytes;
+        transfer.push(reply.bytes.buffer);
+      }
     } else result = JSON.parse(threeBody(JSON.stringify(data.request)));
   } catch {
     result = { error: "Something went wrong. Try again.", field: "" };

@@ -46,6 +46,18 @@ test("@smoke the engine runs Mozi's machine", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("@smoke the engine flattens the Sun", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/#/flat");
+  await expect(page.locator("html")).toHaveAttribute("data-engine", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId("verdict")).toContainText(/flat Sun/);
+  await expect(page.getByTestId("speculative")).toContainText("Speculative");
+  expect(errors).toEqual([]);
+});
+
 test("@smoke the page is served under the committed content security policy", async ({
   request,
 }) => {

@@ -52,6 +52,7 @@ test("home lists both simulations and opens Mozi's machine", async ({
   page,
 }) => {
   const problems = await open(page, "");
+  await page.getByRole("button", { name: /show the simulations/i }).click();
   await expect(
     page.getByRole("link", { name: /Earth without life/ }),
   ).toBeVisible();

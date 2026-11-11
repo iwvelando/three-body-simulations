@@ -38,5 +38,8 @@ export function number(v: number): string {
   if (a >= 100) return v.toFixed(0);
   if (a >= 10) return v.toFixed(1).replace(/\.0$/, "");
   if (a >= 1) return v.toFixed(2).replace(/\.?0+$/, "");
-  return v.toPrecision(2).replace(/\.?0+$/, "");
+  // Very small values come back in powers of ten, which have no
+  // trailing zeros to trim.
+  const text = v.toPrecision(2);
+  return text.includes("e") ? text : text.replace(/\.?0+$/, "");
 }
