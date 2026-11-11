@@ -1,0 +1,197 @@
+name: Verify
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: gofmt and vet
+        run: |
+          files=$(gofmt -l engine cmd)
+          if [ -n "$files" ]; then printf 'Run gofmt on:\n%s\n' "$files"; exit 1; fi
+          go vet ./...
+          GOOS=js GOARCH=wasm go vet ./cmd/wasm
+      - run: npm run format:check
+      - run: npm test
+      - run: go test -race ./...
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium --project=phone
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chromium-test-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+      - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # Safari's engine, which every iOS browser also uses.
+  webkit:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install webkit
+      - run: npm run build
+      - run: npx playwright test --project=webkit
+
+  # The one required status check: every test job must have passed.
+  verify:
+    needs: [check, webkit]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ needs.check.result }} ${{ needs.webkit.result }}
+        run: |
+          for result in $RESULTS; do
+            test "$result" = success || { echo "::error::A test job finished with: $result"; exit 1; }
+          done
+
+  # Publishes the exact build that passed `verify`. Hosting is managed in
+  # iwvelando/cloud-accounts (sites/three-body.isaacvelando.com). Only this job
+  # can get AWS credentials, and the `production` environment only allows main.
+  deploy:
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://three-body.isaacvelando.com
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-1
+      DEPLOY_ROLE_ARN: arn:aws:iam::634753796535:role/three-body-deploy
+      BUCKET: three-body-site-634753796535
+      DISTRIBUTION_ID: E2CR5ZWSJTMBG7
+      SITE_URL: https://three-body.isaacvelando.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: deploy
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+
+      # `sync --delete` below would wipe the site if the build came out empty, and
+      # a site without its engine can't run a simulation.
+      - name: sanity-check build
+        run: |
+          for f in index.html 404.html worker.js wasm_exec.js engine.wasm logo.svg og.png apple-touch-icon.png robots.txt sitemap.xml GO-LICENSE THIRD-PARTY-NOTICES.txt; do test -s "dist/$f"; done
+          ls dist/assets/*.js dist/assets/*.css
+          test "$(stat -c %s dist/engine.wasm)" -gt 1000000
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Fingerprinted assets first, so the new index.html never references a missing
+      # file. Old assets are kept for pages that were already open during a deploy.
+      # The engine gets its content type explicitly: CloudFront compresses only
+      # types it recognises, and streaming compilation needs application/wasm.
+      - name: upload
+        run: |
+          aws s3 sync dist/assets/ "s3://$BUCKET/assets/" \
+            --cache-control 'public, max-age=31536000, immutable'
+          aws s3 cp dist/engine.wasm "s3://$BUCKET/engine.wasm" \
+            --content-type application/wasm --cache-control 'public, max-age=300'
+          aws s3 sync dist/ "s3://$BUCKET/" --delete \
+            --exclude 'assets/*' --exclude 'engine.wasm' \
+            --cache-control 'public, max-age=300'
+
+      - name: invalidate CloudFront
+        run: |
+          id=$(aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" \
+            --paths '/*' --query Invalidation.Id --output text)
+          aws cloudfront wait invalidation-completed --distribution-id "$DISTRIBUTION_ID" --id "$id"
+
+      - name: check headers
+        run: |
+          header() { curl -fsSI "$SITE_URL$1" | tr -d '\r' | grep -i "^$2:" | cut -d' ' -f2-; }
+          if [ "$(header / content-security-policy)" != "$(tr -d '\n' < deploy/content-security-policy.txt)" ]; then
+            echo "::error::The live CSP differs from deploy/content-security-policy.txt. Update iwvelando/cloud-accounts to match."
+            exit 1
+          fi
+          test "$(header /engine.wasm content-type)" = application/wasm
+          curl -fsS "$SITE_URL/" | grep -q '<title>Three-Body Simulations'
+
+  # A real browser against the live site, after the deploy. No AWS credentials.
+  smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium --grep @smoke
+        env:
+          BASE_URL: https://three-body.isaacvelando.com
+
+  # Runs on main started by a workflow (e.g. Dependabot merges) notify no one, so a
+  # failure on main opens an issue, or comments on the one already open.
+  alert:
+    needs: [verify, deploy, smoke]
+    if: failure() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: Production deploy failed
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      SHA: ${{ github.sha }}
+    steps:
+      - run: |
+          body="Verify run $RUN_URL failed on main at $SHA. The live site may be stale or broken. Fix forward, or revert the change and let it redeploy."
+          open=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title \
+            --jq "map(select(.title == env.TITLE)) | .[0].number // empty")
+          if [ -n "$open" ]; then gh issue comment "$open" --body "$body"
+          else gh issue create --title "$TITLE" --body "$body"; fi
