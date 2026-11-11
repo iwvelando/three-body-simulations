@@ -31,14 +31,7 @@ export function pressure(bar: number): string {
 export const oceans = (w: number) =>
   w <= 0 ? "none" : `${w.toFixed(2).replace(/0$/, "")} oceans`;
 
-export function number(v: number): string {
-  if (v === 0) return "0";
-  const a = Math.abs(v);
-  if (a >= 100) return v.toFixed(0);
-  if (a >= 10) return v.toFixed(1).replace(/\.0$/, "");
-  if (a >= 1) return v.toFixed(2).replace(/\.?0+$/, "");
-  return v.toPrecision(2).replace(/\.?0+$/, "");
-}
+export { number } from "../../shell/catalog";
 
 const names: Record<string, string> = {
   "surface-solid": "Surface hardens",

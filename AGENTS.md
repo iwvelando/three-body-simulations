@@ -1,16 +1,17 @@
 # Three-Body Simulations
 
-A strictly static site of simulations inspired by scenes in Liu Cixin's *Remembrance of Earth's Past* trilogy, each built from published science. The first is **Earth without life**, from a scene in *Death's End*: uncheck Life and rerun the planet's history. The intent is a simulation *based on* a scene's premise, with real models a visitor can swap and tune. It is not a test of whether the premise is true, and not a research tool.
+A strictly static site of simulations inspired by scenes in Liu Cixin's *Remembrance of Earth's Past* trilogy, each built from published science. The first is **Earth without life**, from a scene in *Death's End*: uncheck Life and rerun the planet's history. The second is **Mozi's machine**, from *The Three-Body Problem*: the universe as two shells in a sea of fire, and the calendar a clerk at its center records. The intent is a simulation *based on* a scene's premise, with real models a visitor can swap and tune. It is not a test of whether the premise is true, and not a research tool.
 
 ## Boundaries
 
 - Book text is copyrighted. Paraphrase; quote at most a brief attributed phrase. The owner's listening transcripts (`book-passage.txt`, `.local/`) stay out of version control.
 - The site is an unofficial fan project. Keep the attribution to Liu Cixin and the "unofficial" statement on the science page and in the footer.
 - Everything runs in the browser. No server, database, telemetry, analytics or remote requests at run time. Fonts and assets are bundled. Only the theme preference is stored locally (`three-body-theme`); handle denied storage.
-- `engine/` is pure Go with no UI or transport dependency. `engine/core` holds what simulations share; each simulation has its own package (`engine/earth`). `engine/api.go` is the JSON front door and stays testable natively. `cmd/wasm` is transport only. `public/worker.js` runs the engine in a classic worker.
+- `engine/` is pure Go with no UI or transport dependency. `engine/core` holds what simulations share; each simulation has its own package (`engine/earth`, `engine/mozi`). `engine/api.go` is the JSON front door and stays testable natively. `cmd/wasm` is transport only. `public/worker.js` runs the engine in a classic worker.
 - React/TypeScript/Vite lives in `web/`. `web/shell` is the site (routing, registry, engine client, theme); each simulation lives under `web/sims/<id>` and loads lazily.
 - **Descriptor-driven controls.** Go's catalog (`engine/earth/catalog.go`) names every aspect, model, parameter, range, default, help line and citation. The interface renders from it and never branches on a model's name. Adding a model is a Go change plus, for a new paper, a reference entry.
 - **Sourcing.** Every model's equations and constants come from its primary source, read at implementation time, never from memory. Record the source, what is verbatim and what is simplified in `docs/models.md`. Test each model against a value printed in its paper where one exists. A model with no published quantitative basis must set `Speculative`, and the interface must say so wherever it is in use.
+- **Mozi's machine has no published basis.** The novel gives no numbers, so every model in `engine/mozi` is `Speculative` and its page always shows the caveat. `TestMozisMachineCalendar` records how the presets come out; if a change moves it, update the test, `docs/models-mozi.md` and that science page's "How it came out" together. The page builds the machine alone; do not present it as checked against a real sky.
 - **Report outcomes as they come out.** Do not tune a preset to an outcome by leaving published ranges without marking the departure speculative. `TestGreenGlassesLifelessEarthDriesOut` records the current calibration result; if a change alters it, update the test, `docs/models.md` and the science page's "How it came out" together.
 - Every paper cited anywhere must appear in `web/sims/earth/references.ts` with a link verified to resolve to that paper (check the DOI's title, do not guess DOIs).
 - Hosting is live at `https://three-body.isaacvelando.com/`. Infrastructure (S3, CloudFront, ACM, DNS, the deploy role) belongs in `iwvelando/cloud-accounts` (`sites/three-body.isaacvelando.com`), never here. Never deploy locally.
@@ -28,13 +29,13 @@ The engine worker cannot abandon a run. Send requests that follow a control thro
 
 ## Discovery
 
-Read `README.md`, `docs/architecture.md` and `docs/models.md` before changing model behavior.
+Read `README.md`, `docs/architecture.md` and `docs/models.md` (Earth) or `docs/models-mozi.md` (Mozi's machine) before changing model behavior.
 
 ## Development
 
 Plan new features and changes affecting more than two modules. Use strict red-green-refactor: write the test, run it and see the expected failure, implement, run to green, then refactor. Native Go tests come before WASM bridge tests; failing Playwright tests come before interface behavior. Keep tests meaningful: independent expected values, not a second copy of the formula.
 
-Invariants the tests hold: identical requests give identical results; coarse and fine resolutions agree; every preset returns the living Earth to today's temperature, CO2 and oxygen; the ocean only shrinks; the Life switch never changes the Sun; errors name the offending field; links are untrusted input validated against the catalog; stale engine replies are dropped.
+Invariants the tests hold: identical requests give identical results; coarse and fine resolutions agree; every preset returns the living Earth to today's temperature, CO2 and oxygen; the ocean only shrinks; the Life switch never changes the Sun; errors name the offending field; links are untrusted input validated against the catalog; stale engine replies are dropped. For Mozi's machine: one gear keeps the sunrise equation; one sphere pins the sun among the stars and fixes its width; the dark cloud never moves a sunrise; the sky frames agree with the calendar.
 
 Use American English. User-facing text is plain and short: say what a control does, no jargon where a common word exists.
 

@@ -11,6 +11,7 @@ import (
 	"threebody/engine/earth"
 	"threebody/engine/earth/chance"
 	"threebody/engine/earth/terrain"
+	"threebody/engine/mozi"
 )
 
 // Simulation names one simulation the engine can run.
@@ -19,7 +20,17 @@ type Simulation struct {
 	Title string `json:"title"`
 }
 
-var simulations = []Simulation{{ID: "earth", Title: "Earth without life"}}
+var simulations = []Simulation{
+	{ID: "earth", Title: "Earth without life"},
+	{ID: "mozi", Title: "Mozi's machine"},
+}
+
+// decode reads a request into q, refusing fields q does not have.
+func decode(request string, q any) bool {
+	d := json.NewDecoder(bytes.NewReader([]byte(request)))
+	d.DisallowUnknownFields()
+	return d.Decode(q) == nil
+}
 
 type envelope struct {
 	Sim    string `json:"sim"`
@@ -73,9 +84,7 @@ func Handle(request string) (out string) {
 				envelope
 				chance.Request
 			}
-			d := json.NewDecoder(bytes.NewReader([]byte(request)))
-			d.DisallowUnknownFields()
-			if d.Decode(&q) != nil {
+			if !decode(request, &q) {
 				return refuse("", "The request was not understood.")
 			}
 			return reply(chance.Run(q.Request))
@@ -88,12 +97,34 @@ func Handle(request string) (out string) {
 				envelope
 				earth.Request
 			}
-			d := json.NewDecoder(bytes.NewReader([]byte(request)))
-			d.DisallowUnknownFields()
-			if d.Decode(&q) != nil {
+			if !decode(request, &q) {
 				return refuse("", "The request was not understood.")
 			}
 			return reply(earth.Run(q.Request))
+		}
+		return refuse("action", "Unknown action.")
+	case "mozi":
+		switch e.Action {
+		case "catalog":
+			return reply(mozi.Catalog(), nil)
+		case "run":
+			var q struct {
+				envelope
+				mozi.Request
+			}
+			if !decode(request, &q) {
+				return refuse("", "The request was not understood.")
+			}
+			return reply(mozi.Run(q.Request))
+		case "sky":
+			var q struct {
+				envelope
+				mozi.SkyRequest
+			}
+			if !decode(request, &q) {
+				return refuse("", "The request was not understood.")
+			}
+			return reply(mozi.Sky(q.SkyRequest))
 		}
 		return refuse("action", "Unknown action.")
 	}
@@ -115,9 +146,7 @@ func Terrain(request string) (meta string, heights, cover []float32) {
 		envelope
 		terrain.Request
 	}
-	d := json.NewDecoder(bytes.NewReader([]byte(request)))
-	d.DisallowUnknownFields()
-	if d.Decode(&q) != nil || q.Sim != "earth" || q.Action != "terrain" {
+	if !decode(request, &q) || q.Sim != "earth" || q.Action != "terrain" {
 		return refuse("", "The request was not understood."), nil, nil
 	}
 	r, err := terrain.Run(q.Request)

@@ -1,33 +1,6 @@
-// Mirrors engine/core and engine/earth. Keep field names in step with Go.
-export type Param = {
-  id: string;
-  label: string;
-  unit: string;
-  min: number;
-  max: number;
-  default: number;
-  log?: boolean;
-  help: string;
-  when: "always" | "on" | "off";
-  basic?: boolean;
-};
-export type Model = {
-  id: string;
-  label: string;
-  summary: string;
-  citation: string;
-  params: string[];
-  speculative?: boolean;
-};
-export type Slot = { id: string; label: string; help: string; models: Model[] };
-export type Preset = {
-  id: string;
-  label: string;
-  summary: string;
-  models: Record<string, string>;
-  params: Record<string, number>;
-};
-export type Catalog = { slots: Slot[]; params: Param[]; presets: Preset[] };
+// Mirrors engine/earth. Keep field names in step with Go. The catalog's
+// own types are shared by every simulation.
+export type { Catalog, Model, Param, Preset, Slot } from "../../shell/catalog";
 
 export type SeriesName =
   | "luminosity"

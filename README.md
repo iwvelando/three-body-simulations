@@ -1,6 +1,6 @@
 # Three-Body Simulations
 
-Simulations inspired by scenes in Liu Cixin's *Remembrance of Earth's Past* trilogy, built from published science and run entirely in the browser. An unofficial fan project.
+Simulations inspired by scenes in Liu Cixin's *Remembrance of Earth's Past* trilogy, built from published science where there is any, and run entirely in the browser. An unofficial fan project.
 
 ## Earth without life
 
@@ -11,6 +11,12 @@ A second view zooms in to a patch of land and lets rain, creep and vegetation wo
 A third asks the question the scene opens with, whether a habitable planet is luck: thousands of random planets, each run against random accidents, after Tyrrell (2020).
 
 It is a simulation based on the scene's premise, not a test of it. With published models alone, set where life matters most, the lifeless Earth here ends scalding but wet; the book's dry planet also needs the character's own guess about unshielded water loss, which the site marks speculative. See [the models](docs/models.md).
+
+## Mozi's machine
+
+In *The Three-Body Problem* a player who goes by Mozi explains an unreliable sun with a machine: the universe is two copper shells in a sea of fire, the sun a hole in the outer shell cast onto the inner one, and a clerk at the center records it to make a calendar of Stable and Chaotic Eras. This page builds that machine. One view is the clerk's whole sky; the other is the machine cut open, with layers you can peel away. Each of Mozi's answers to Wang's objections is a switch you can take back.
+
+The novel gives no numbers, so everything about this machine is invented and marked speculative. It is the machine alone, not a test of it against a real sky. See [its models](docs/models-mozi.md).
 
 ## Run it
 
@@ -31,11 +37,13 @@ make preview-lan   # HTTPS on the local network, for a phone
 | `engine/earth` | The Earth models, catalog, presets and coupled run |
 | `engine/earth/terrain` | The surface patch: erosion, creep and vegetation |
 | `engine/earth/chance` | The ensemble of random planets |
+| `engine/mozi` | Mozi's machine: shells, gears, the clerk's calendar |
 | `engine/api.go` | JSON front door for every simulation |
 | `cmd/wasm` | WebAssembly transport only |
 | `web/shell` | Site shell, simulation registry, engine client |
 | `web/sims/earth` | The Earth page: globe, timeline, panel, charts, sources |
-| `docs/` | [Architecture](docs/architecture.md), [models and sources](docs/models.md) |
+| `web/sims/mozi` | Mozi's machine: the clerk's sky, the cutaway, the calendar |
+| `docs/` | [Architecture](docs/architecture.md), models and sources for [Earth](docs/models.md) and [Mozi's machine](docs/models-mozi.md) |
 
 More simulations from the trilogy are meant to follow; [AGENTS.md](AGENTS.md) says how to add one.
 
