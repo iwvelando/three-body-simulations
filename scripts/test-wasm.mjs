@@ -47,7 +47,20 @@ assert.equal(
   ),
   "string",
 );
+const machine = ask({ sim: "mozi", action: "run", preset: "clockwork" });
+assert.deepEqual(
+  machine.eras.map((e) => e.kind),
+  ["stable"],
+);
+assert.equal(machine.calendar.rise.length, machine.calendar.regular.length);
+const sky = ask({ sim: "mozi", action: "sky", from: 1, step: 0.01, count: 4 });
+assert.equal(sky.sun.length, 4);
+assert.equal(sky.inner[0].length, 4);
+assert.equal(
+  ask({ sim: "mozi", action: "sky", from: 1, step: 0, count: 4 }).field,
+  "step",
+);
 console.log(
-  "WASM bridge: catalog, living and lifeless runs, terrain arrays and refusals passed.",
+  "WASM bridge: Earth catalog, runs, terrain arrays and refusals; Mozi calendar and sky passed.",
 );
 process.exit(0);

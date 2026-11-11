@@ -34,6 +34,18 @@ test("@smoke the engine arrives as WebAssembly and runs the Earth", async ({
   expect(errors).toEqual([]);
 });
 
+test("@smoke the engine runs Mozi's machine", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/#/mozi");
+  await expect(page.locator("html")).toHaveAttribute("data-engine", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId("verdict")).toContainText(/Stable Era/);
+  await expect(page.getByTestId("forecast")).toContainText(/Era/);
+  expect(errors).toEqual([]);
+});
+
 test("@smoke the page is served under the committed content security policy", async ({
   request,
 }) => {

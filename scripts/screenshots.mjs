@@ -74,6 +74,22 @@ try {
         await page.waitForTimeout(1500);
         await shot(`surface-${scene.split(" ")[0].toLowerCase()}`);
       }
+      await page.goto(base + "#/mozi");
+      await page.getByTestId("verdict").waitFor();
+      await page.waitForTimeout(600);
+      await shot("mozi-day");
+      for (const [name, at] of [
+        ["night", 1.6],
+        ["stable", 180.4],
+        ["chaotic", 420.45],
+      ]) {
+        await slide(page, "Time", at);
+        await page.waitForTimeout(400);
+        await shot(`mozi-${name}`, false);
+      }
+      await page.goto(base + "#/mozi/science");
+      await page.getByRole("heading", { level: 1 }).waitFor();
+      await shot("mozi-science");
       await page.goto(base + "#/earth/science");
       await page.getByRole("heading", { level: 1 }).waitFor();
       await shot("science");

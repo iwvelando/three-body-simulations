@@ -222,8 +222,9 @@ select {
   margin-top: 1.5rem;
 }
 
-/* Earth */
-.earth {
+/* Earth and Mozi share the page grid: stage, settings, charts. */
+.earth,
+.mozi {
   display: grid;
   gap: 1.5rem 2.5rem;
   grid-template-columns: minmax(0, 1fr);
@@ -232,7 +233,8 @@ select {
 .intro {
   grid-area: intro;
 }
-.earth > .notice {
+.earth > .notice,
+.mozi > .notice {
   grid-area: notice;
   margin: 0;
 }
@@ -247,7 +249,8 @@ select {
   grid-area: controls;
   min-width: 0;
 }
-.charts {
+.charts,
+.calendar {
   grid-area: charts;
   min-width: 0;
 }
@@ -263,7 +266,8 @@ select {
   display: block;
 }
 @media (min-width: 62rem) {
-  .earth {
+  .earth,
+  .mozi {
     grid-template-columns: minmax(0, 1fr) 22rem;
     grid-template-areas: "intro intro" "notice notice" "stage controls" "charts controls";
     /* A tall panel must lengthen only the last row, or opening Models
@@ -875,6 +879,289 @@ thead th {
 .references a {
   overflow-wrap: anywhere;
 }
+/* Mozi's machine */
+:root {
+  --stable: var(--living);
+  --chaotic: var(--lifeless);
+}
+.views {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+@media (min-width: 44rem) {
+  .views {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.views figure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  justify-items: center;
+  align-content: start;
+}
+.views figcaption {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+.views figcaption strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.sky,
+.machine {
+  width: min(100%, 26rem);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  color: var(--ink);
+}
+/* A drag on the machine turns it, in any direction, so a touch that
+   starts here must never scroll the page. */
+.machine,
+.machine canvas {
+  touch-action: none;
+}
+.machine {
+  cursor: grab;
+  border-radius: 6px;
+}
+.sky canvas,
+.machine canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+.machine svg {
+  width: 100%;
+  height: 100%;
+}
+/* On a phone the toggles stand in two columns from the left edge; with
+   room they run in one centered row after their legend. */
+.layers {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: start;
+  gap: 0.25rem 1.5rem;
+  align-items: center;
+}
+.layers legend {
+  font-weight: 600;
+  padding: 0;
+  line-height: 2.5rem;
+}
+@media (min-width: 44rem) {
+  .layers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    justify-content: center;
+  }
+  .layers legend {
+    float: left;
+    margin-right: 1.25rem;
+  }
+}
+.layers .check {
+  min-height: 2.5rem;
+  padding-top: 0;
+  border-top: 0;
+  cursor: pointer;
+}
+.layers input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--ink);
+}
+.layers input:disabled + span {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.era-stable {
+  background: var(--stable);
+  fill: var(--stable);
+}
+.era-chaotic {
+  background: var(--chaotic);
+  fill: var(--chaotic);
+}
+.eras .era {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.mozi .moment .eon-key {
+  vertical-align: baseline;
+}
+.timeline-slot {
+  min-width: 0;
+}
+.sky-figure {
+  scroll-margin-top: 0.75rem;
+}
+.dock-when {
+  display: none;
+}
+/* From Play on a narrow screen the timeline is a dock at the bottom, so
+   the sky can be watched and the clock still steered. */
+@media (max-width: 43.99rem) {
+  .timeline.docked {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    padding: 0.5rem clamp(1rem, 4vw, 2.5rem)
+      calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  /* Three short rows: the moment and the speed, the transport, the eras.
+     The moment names the era now, so the key to the colors is left out. */
+  .timeline.docked {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+  }
+  .timeline.docked .dock-when {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .timeline.docked .dock-when .eon-key {
+    margin: 0 0.25rem 0 0.5rem;
+  }
+  .timeline.docked .transport,
+  .timeline.docked .eras {
+    grid-column: 1 / -1;
+  }
+  .timeline.docked .timeline-foot {
+    display: contents;
+  }
+  .timeline.docked .eon-names {
+    display: none;
+  }
+  .timeline.docked .speed {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .timeline.docked .speed span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  /* Room to scroll the end of the page clear of the dock. */
+  .mozi.docking {
+    padding-bottom: 8rem;
+  }
+}
+.timeline-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 0.375rem;
+}
+.timeline-foot .eon-names {
+  margin-top: 0;
+}
+.speed {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.speed select {
+  width: auto;
+  min-height: 2.25rem;
+  color: var(--ink);
+}
+.forecast {
+  font-weight: 500;
+  max-width: 60ch;
+}
+.explains {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 64ch;
+}
+.explains h2 {
+  font-size: 1.25rem;
+}
+.explains dl {
+  display: grid;
+  gap: 0.625rem;
+}
+.explains dt {
+  font-weight: 600;
+}
+.explains dd {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.calendar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+.calendar .charts-head {
+  margin-bottom: 0;
+}
+.calendar-chart .chart-values {
+  flex-wrap: wrap;
+  gap: 0.125rem 1rem;
+  color: var(--muted);
+}
+.swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  margin-right: 0.375rem;
+  vertical-align: -1px;
+  opacity: 0.55;
+}
+.swatch.band {
+  background: none;
+  border: 1px dashed var(--ink);
+  opacity: 0.8;
+}
+.chart .regular-band {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: 0.55;
+}
+.chart .series.days {
+  stroke: var(--ink);
+  stroke-width: 1.25;
+}
+.calendar-sub {
+  margin-top: 0.5rem;
+}
+.calendar .events {
+  margin-top: 0;
+}
+.calendar .events button[aria-current] {
+  border-color: var(--ink);
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .field {
     transition: opacity 0.2s;

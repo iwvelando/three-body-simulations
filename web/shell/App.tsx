@@ -118,7 +118,7 @@ function Home() {
           </li>
         ))}
       </ul>
-      <p className="more">More simulations will join this one.</p>
+      <p className="more">More simulations will join these.</p>
     </main>
   );
 }

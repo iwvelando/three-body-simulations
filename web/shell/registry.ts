@@ -27,4 +27,12 @@ export const simulations: Simulation[] = [
       "Uncheck Life and run the planet's four and a half billion years again. Does it keep its oceans?",
     load: () => import("../sims/earth/EarthPage"),
   },
+  {
+    id: "mozi",
+    title: "Mozi's machine",
+    source: "The Three-Body Problem",
+    blurb:
+      "The universe as two copper shells in a sea of fire. Stand where the clerk stands and read the calendar of Stable and Chaotic Eras.",
+    load: () => import("../sims/mozi/MoziPage"),
+  },
 ];
