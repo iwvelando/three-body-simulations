@@ -110,10 +110,24 @@ button[aria-pressed="true"] {
 select {
   width: 100%;
   min-height: 2.5rem;
-  background: var(--raised);
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 0 0.5rem;
+  /* The browser's own arrow sits hard against the edge, so one is drawn
+     here instead, with room around it. */
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0 2.25rem 0 0.625rem;
+  background-color: var(--raised);
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-size:
+    0.375rem 0.375rem,
+    0.375rem 0.375rem;
+  background-position:
+    calc(100% - 1.25rem) 50%,
+    calc(100% - 0.875rem) 50%;
+  background-repeat: no-repeat;
 }
 :focus-visible {
   outline: 2px solid var(--focus);
@@ -186,6 +200,37 @@ select {
 }
 
 /* Home */
+.spoilers,
+.about {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  max-width: 40rem;
+}
+.spoilers {
+  margin-top: 2.5rem;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--lifeless);
+  border-radius: 4px;
+}
+.about {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.about h2 {
+  color: var(--ink);
+  font-size: 1.25rem;
+}
+button.primary {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  font-weight: 600;
+}
 .sims {
   margin-top: 2.5rem;
   display: grid;
@@ -224,7 +269,8 @@ select {
 
 /* Earth and Mozi share the page grid: stage, settings, charts. */
 .earth,
-.mozi {
+.mozi,
+.flat {
   display: grid;
   gap: 1.5rem 2.5rem;
   grid-template-columns: minmax(0, 1fr);
@@ -234,7 +280,8 @@ select {
   grid-area: intro;
 }
 .earth > .notice,
-.mozi > .notice {
+.mozi > .notice,
+.flat > .notice {
   grid-area: notice;
   margin: 0;
 }
@@ -267,7 +314,8 @@ select {
 }
 @media (min-width: 62rem) {
   .earth,
-  .mozi {
+  .mozi,
+  .flat {
     grid-template-columns: minmax(0, 1fr) 22rem;
     grid-template-areas: "intro intro" "notice notice" "stage controls" "charts controls";
     /* A tall panel must lengthen only the last row, or opening Models
@@ -1162,6 +1210,189 @@ thead th {
   font-weight: 600;
 }
 
+/* Into two dimensions */
+.flat-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin-top: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.flat-tabs a {
+  padding: 0.5rem 0;
+  min-height: 2.5rem;
+  text-decoration: none;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.flat-tabs a:hover {
+  color: var(--ink);
+}
+.flat-tabs a[aria-current] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--ink);
+}
+.flat-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+.flat-pick label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.flat-pick select {
+  min-width: 11rem;
+}
+.flat-pick .check {
+  display: flex;
+  border: 0;
+  padding: 0;
+  font-weight: 400;
+}
+/* The browser's own file control cannot be made to match a button, so
+   it is hidden and its label is drawn as one. */
+.flat-pick .file {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.8rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 400;
+  cursor: pointer;
+  position: relative;
+}
+.flat-pick .file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.flat-pick .file:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+/* The plane is always seen against space, in either theme. */
+.flat-view {
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 80vh;
+  background: #060a12;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.flat-view canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.flat-figure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  width: min(100%, 40rem);
+}
+.flat-figure figcaption,
+.flat-side figcaption {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.flat-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.flat-side {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.flat-side figure {
+  display: grid;
+  gap: 0.375rem;
+}
+.flat-thumb canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--soft);
+}
+@media (min-width: 44rem) {
+  .flat-pair {
+    grid-template-columns: minmax(0, 1fr) 13rem;
+  }
+  .flat-side {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.flat-rings {
+  display: grid;
+  gap: 0.625rem;
+  max-width: 64ch;
+}
+.flat-rings h2 {
+  font-size: 1.25rem;
+}
+.flat-rings ol {
+  display: grid;
+  gap: 0.375rem;
+}
+.flat-rings li {
+  display: flex;
+  gap: 0.25rem;
+  align-items: baseline;
+}
+.flat-rings .swatch {
+  flex: none;
+  opacity: 1;
+  border: 1px solid var(--line);
+}
+.flat-rings .hint {
+  display: block;
+}
+.flat-ruler {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 30rem;
+}
+.flat-ruler h2 {
+  font-size: 1.25rem;
+}
+.flat-ruler li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.flat-ruler li[aria-current] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--soft);
+  border-left: 3px solid var(--lifeless);
+}
+.flat-snow {
+  max-width: 64ch;
+}
+.flat .verdict {
+  max-width: 64ch;
+}
 @media (prefers-reduced-motion: no-preference) {
   .field {
     transition: opacity 0.2s;

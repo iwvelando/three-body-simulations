@@ -94,7 +94,7 @@ func TestChanceEnsemble(t *testing.T) {
 
 func TestSimulationsListsMozi(t *testing.T) {
 	list := call(t, `{"action":"simulations"}`)["simulations"].([]any)
-	if len(list) != 2 || list[1].(map[string]any)["id"] != "mozi" {
+	if len(list) != 3 || list[1].(map[string]any)["id"] != "mozi" || list[2].(map[string]any)["id"] != "flat" {
 		t.Fatalf("simulations: %v", list)
 	}
 }
@@ -132,6 +132,83 @@ func TestMoziCatalogRunAndSky(t *testing.T) {
 		}
 		if got, _ := out["field"].(string); got != field {
 			t.Errorf("%s: field %q, want %q", request, got, field)
+		}
+	}
+}
+
+func TestFlatCatalogRunAndSky(t *testing.T) {
+	cat := call(t, `{"sim":"flat","action":"catalog"}`)
+	if len(cat["slots"].([]any)) != 3 || len(cat["presets"].([]any)) != 4 || len(cat["bodies"].([]any)) != 10 {
+		t.Fatalf("catalog: %v", cat)
+	}
+	if cat := call(t, `{"sim":"flat","action":"painting-catalog"}`); len(cat["slots"].([]any)) != 3 {
+		t.Fatalf("painting catalog: %v", cat)
+	}
+	raw := Handle(`{"sim":"flat","action":"run","body":"earth","models":{"landing":"spread"},"resolution":"fine"}`)
+	if len(raw) > 400_000 {
+		t.Fatalf("run reply is %d bytes", len(raw))
+	}
+	run := call(t, `{"sim":"flat","action":"run","body":"neptune"}`)
+	if len(run["rings"].([]any)) != 3 || run["duration"].(float64) <= 0 {
+		t.Fatalf("run: %v", run["rings"])
+	}
+	sky := call(t, `{"sim":"flat","action":"sky","seed":4}`)
+	if len(sky["bodies"].([]any)) != 10 {
+		t.Fatalf("sky: %v", sky)
+	}
+	for request, field := range map[string]string{
+		`{"sim":"flat","action":"leap"}`:                                "action",
+		`{"sim":"flat","action":"run","body":"vulcan"}`:                 "body",
+		`{"sim":"flat","action":"run","params":{"sheet.thickness":-1}}`: "params.sheet.thickness",
+		`{"sim":"flat","action":"run","seed":2}`:                        "",
+		`{"sim":"flat","action":"sky","seed":-2}`:                       "seed",
+		`{"sim":"flat","action":"painting","width":2,"height":2}`:       "action",
+		`{"sim":"flat","action":"snowflakes","count":2,"size":32}`:      "action",
+	} {
+		out := call(t, request)
+		if msg, _ := out["error"].(string); msg == "" || strings.Contains(msg, "json:") {
+			t.Errorf("%s: error %q", request, msg)
+		}
+		if got, _ := out["field"].(string); got != field {
+			t.Errorf("%s: field %q, want %q", request, got, field)
+		}
+	}
+}
+
+// Pictures travel as bytes beside the JSON in both directions.
+func TestFlatBytes(t *testing.T) {
+	picture := make([]byte, 4*8*6)
+	for i := range picture {
+		picture[i] = byte(i * 7)
+	}
+	meta, out := Bytes(`{"sim":"flat","action":"painting","width":8,"height":6}`, picture)
+	var reply struct {
+		Restored struct{ Offset, Width, Height int }
+		Flat     struct{ Offset, Width, Height int }
+		Error    string
+	}
+	if err := json.Unmarshal([]byte(meta), &reply); err != nil || reply.Error != "" {
+		t.Fatalf("painting: %v %s", err, meta)
+	}
+	if reply.Restored.Width != 8 || len(out) != reply.Restored.Offset+4*8*6 || reply.Flat.Width < 256 || len(meta) > 6000 {
+		t.Fatalf("painting: %d bytes beside %s", len(out), meta)
+	}
+	meta, out = Bytes(`{"sim":"flat","action":"snowflakes","seed":1,"count":2,"size":32}`, nil)
+	if len(out) != 2*32*32 || strings.Contains(meta, "error") {
+		t.Fatalf("snowflakes: %d bytes, %s", len(out), meta)
+	}
+	for request, field := range map[string]string{
+		`{"sim":"flat","action":"painting","width":8,"height":7}`:  "pixels",
+		`{"sim":"flat","action":"painting","width":8,"hieght":6}`:  "",
+		`{"sim":"flat","action":"snowflakes","count":0,"size":32}`: "count",
+		`{"sim":"flat","action":"run"}`:                            "action",
+		`{"sim":"earth","action":"painting","width":8,"height":6}`: "sim",
+		`{`: "",
+	} {
+		meta, out := Bytes(request, picture)
+		var refusal map[string]any
+		if out != nil || json.Unmarshal([]byte(meta), &refusal) != nil || refusal["error"] == "" || refusal["field"] != field {
+			t.Errorf("%s: %s", request, meta)
 		}
 	}
 }

@@ -44,6 +44,10 @@ export function App() {
     };
   }, [attempt]);
 
+  // The list of simulations names scenes from all three books, so it
+  // waits for a visitor to say they do not mind. Asked once a visit:
+  // nothing but the theme is stored.
+  const [warned, setWarned] = useState(false);
   const hash = useHash();
   const match = /^#\/([a-z0-9-]+)(.*)$/.exec(hash);
   const sim = match && simulations.find((s) => s.id === match[1]);
@@ -71,8 +75,8 @@ export function App() {
           <Page engine={engine} rest={rest} />
         </Suspense>
       );
-    return <Home />;
-  }, [failure, Page, engine, rest]);
+    return <Home warned={warned} onWarned={() => setWarned(true)} />;
+  }, [failure, Page, engine, rest, warned]);
 
   return (
     <>
@@ -97,28 +101,56 @@ export function App() {
   );
 }
 
-function Home() {
+const source = "https://github.com/iwvelando/three-body-simulations";
+
+function Home({ warned, onWarned }: { warned: boolean; onWarned: () => void }) {
   return (
     <main className="page home">
       <h1>Three-Body Simulations</h1>
       <p className="lede">
-        Scenes from the trilogy where someone sits down at a computer and runs
-        the universe forward, rebuilt so you can run them too.
+        Scenes from Liu Cixin's trilogy that turn on an idea you can work
+        through, rebuilt as simulations you can run and change.
       </p>
-      <ul className="sims">
-        {simulations.map((s) => (
-          <li key={s.id}>
-            <a href={`#/${s.id}`}>
-              <span className="sim-title">{s.title}</span>
-              <span className="sim-blurb">{s.blurb}</span>
-              <span className="sim-source">
-                From <cite>{s.source}</cite>
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-      <p className="more">More simulations will join these.</p>
+      {warned ? (
+        <ul className="sims">
+          {simulations.map((s) => (
+            <li key={s.id}>
+              <a href={`#/${s.id}`}>
+                <span className="sim-title">{s.title}</span>
+                <span className="sim-blurb">{s.blurb}</span>
+                <span className="sim-source">
+                  From <cite>{s.source}</cite>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <section className="spoilers" aria-labelledby="spoilers-title">
+          <h2 id="spoilers-title">Before you go on</h2>
+          <p>
+            These pages contain spoilers for all three books of{" "}
+            <cite>Remembrance of Earth's Past</cite>, including how the last one
+            ends. Even the names of the simulations give things away.
+          </p>
+          <button type="button" className="primary" onClick={onWarned}>
+            I understand, show the simulations
+          </button>
+        </section>
+      )}
+      <section className="about" aria-labelledby="about-title">
+        <h2 id="about-title">About this site</h2>
+        <p>
+          An unofficial fan project, with no connection to the author, his
+          translators or his publishers. Each simulation says which parts come
+          from published science and which were invented to fill in what the
+          novels leave out. Everything runs in your browser.
+        </p>
+        <p>
+          The site is open source. The code, the models and their sources are{" "}
+          <a href={source}>on GitHub</a>.
+        </p>
+      </section>
     </main>
   );
 }

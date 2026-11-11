@@ -13,7 +13,7 @@ test-results/
 .DS_Store
 
 # Private listening transcript; copyrighted book text stays out of the repository.
-book-passage.txt
+book-passage*.txt
 .local/
 
 # Local settings and credentials (commit documented examples deliberately).

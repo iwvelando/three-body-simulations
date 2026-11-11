@@ -9,13 +9,15 @@ flowchart LR
   WASM --> API[engine.Handle]
   API --> Earth[engine/earth]
   API --> Mozi[engine/mozi]
+  API --> Flat[engine/flat]
   Earth --> Core[engine/core]
   Mozi --> Core
+  Flat --> Core
 ```
 
 ## Engine
 
-`engine.Handle(json) json` answers `{"action":"simulations"}` and, per simulation, `{"sim":"earth"|"mozi","action":"catalog"|"run", ...}`. A refusal is `{"error": message, "field": path}`; nothing panics or leaks a Go error across the boundary.
+`engine.Handle(json) json` answers `{"action":"simulations"}` and, per simulation, `{"sim":"earth"|"mozi"|"flat","action":"catalog"|"run", ...}`. A refusal is `{"error": message, "field": path}`; nothing panics or leaks a Go error across the boundary.
 
 `engine/core` defines `Slot` (an aspect), `Model`, `Param` and `Preset`, and `Catalog.Resolve`, which layers defaults, a preset and the request's overrides and validates them. `Catalog.Check` catches descriptor mistakes and runs in tests.
 
@@ -29,9 +31,13 @@ At each step the carbon cycle is solved as a balance (weathering equals outgassi
 
 `engine/mozi.Run` takes `{preset, models, params, resolution}` and returns the clerk's calendar (one record per sunrise: when, the day's length, daylight, the sun's widest and the light received, and whether the clerk counts it regular), the eras read from it, the standard day, the star field and a summary. The machine is closed-form in time, so nothing is integrated. `engine/mozi.Sky` takes the same choice plus `{from, step, count}` and returns up to 1,000 frames of the machine's state for the views: the sun's direction, width and brightness, each shell's attitude as a quaternion and its radius, the hole's width and the flying stars. Both replies are small enough for JSON.
 
+`engine/flat.Run` takes `{body, preset, models, params, resolution}` and returns one body's fall: its flat size, how long it takes, when the picture is wider than what is left, the rings, and 97 (coarse) or 385 (fine) frames of the plane's height, the footprint, the rim and every band's edge. Everything is closed form. `engine/flat.Sky` takes the same choice and a seed and returns every body's place, flat size, bands and turn to fall. Both are small JSON.
+
+Pictures do not travel as JSON. `engine.Bytes(request, in)` answers `{"sim":"flat","action":"painting", width, height, ...}` with the picture as RGBA bytes beside it, and `"snowflakes"`; its reply's JSON says where each picture and the mesh of the fall lie in the bytes that come back beside it. `cmd/wasm` exposes it as `threeBodyBytes(json, Uint8Array?)` returning `{json, bytes}`, and the worker hands buffers over in both directions (`Engine.ask(request, bytes)`).
+
 ## Interface
 
-`web/shell/App.tsx` owns the one engine worker, hash routes (`#/`, `#/<sim>`, `#/<sim>/…`) and the registry of lazily loaded simulations. `html[data-engine="ready"]` marks a started engine; a failed start offers a retry.
+The home page lists the simulations only after a visitor acknowledges a spoiler warning. The acknowledgement lasts for the visit and is not stored; a link straight to a simulation is not held up. `web/shell/App.tsx` owns the one engine worker, hash routes (`#/`, `#/<sim>`, `#/<sim>/…`) and the registry of lazily loaded simulations. `html[data-engine="ready"]` marks a started engine; a failed start offers a retry.
 
 The Earth page keeps one `Study` (Life, preset, edits, resolution). Each change reruns both Earths after 120 ms; a sequence number drops superseded replies. The study is mirrored into the address as `#/earth?c=<base64url JSON>`; an arriving link is validated key by key against the catalog and falls back to the default with a notice. Controls are rendered from the catalog. The globe is a three.js sphere with one procedural shader fed by `look.ts`; without WebGL it is a flat disc. Charts are plain SVG, one measure each, both Earths on each, with a table view. On a wide screen both Earths' globes are shown side by side.
 
@@ -40,6 +46,8 @@ The Earth page keeps one `Study` (Life, preset, edits, resolution). Each change 
 `#/earth/chance` is the ensemble (`Chance.tsx`). It shares the planets out in chunks of 25 among the site's engine and up to three more, each in its own worker, shows progress, and can be stopped; a token discards replies from a run that has been replaced. The planet and surface views send requests through `useLatest` (`web/shell/useLatest.ts`), which runs one at a time and only ever the newest, so a dragged slider never leaves a queue of runs behind it.
 
 `#/mozi` is Mozi's machine (`web/sims/mozi`). One `useLatest` request carries the study and the day the frames start: the calendar is asked for again only when the study changes, and frames arrive three days at a time, a quarter of an hour apart, as the clock moves. Both views are drawn from a `View` read between two frames, never from the model re-implemented in TypeScript; while a newer window is on its way the last moment drawn stays up. `Sky.tsx` is a 2D canvas of the whole sky from the center. `Machine.tsx` is a three.js cutaway, drawn only when something changes, whose layers can be hidden; the inside of the inner shell takes the sky's color. Without WebGL it is an SVG cross-section through the sun. On a narrow screen, Play scrolls the clerk's sky to the top and docks the timeline at the bottom; the dock stays through a pause or a scrub and is put away by the first scroll made while time stands still. The study travels as `#/mozi?c=…`, validated like Earth's. The catalog types and the slider both simulations use are in `web/shell` (`catalog.ts`, `Slider.tsx`).
+
+`#/flat` is the fall into two dimensions (`web/sims/flat`), in three views that share tabs: a body (`FlatPage.tsx`, `Fall.tsx`), a painting (`Painting.tsx`, `Sheet.tsx`) and the whole sky (`SkyView.tsx`). Each keeps a study in `?c=…` beside its own keys (`body`, `seed`), all validated on arrival; a view is keyed by the address, so a link followed from inside the page is an arrival too. The body and sky views are 2D canvases drawn from the engine's frames. The first three tenths of the body's timeline run up to the moment the flat picture is as wide as the body, and the rest runs evenly to the end, because the picture's growth is over almost at once while the body takes the whole fall to go under; the view opens at that moment and Play takes forty seconds. When the view has pulled back so far that the body is a speck, it is drawn again in a corner at a fixed scale. Choosing a preset turns to the body the catalog's `focus` names for it. Each body's face (`Ball.ts`) is one of NASA's maps from `public/planets` wrapped around a ball, or, until it loads and where there is none, a likeness made from the catalog's `surface` description. The side view, the sky's reach and its brush strokes travel in the link as `view`, `show` and `plain`. The painting is read with `createImageBitmap` from the chosen file, shrunk to 320 dots and sent to the engine as bytes; it is never uploaded, and no blob URL is used for display, so the policy below needed no change. `Sheet.tsx` draws the engine's mesh with a small WebGL program, moving each row of the picture along its path as the fall plays; without WebGL it shows the engine's own finished picture. The study codec both newer simulations use is `web/shell/study.ts`.
 
 ## Security policy
 

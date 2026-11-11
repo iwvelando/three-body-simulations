@@ -64,12 +64,17 @@ export class Engine {
     this.ready.catch(() => {});
   }
 
-  async ask<T>(request: object): Promise<T> {
+  // `bytes` rides beside the request for the actions that take a
+  // picture. Its buffer is handed over, so the caller's copy is emptied.
+  async ask<T>(request: object, bytes?: Uint8Array): Promise<T> {
     await this.ready;
     return new Promise<T>((resolve, reject) => {
       const id = ++this.next;
       this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ id, request });
+      this.worker.postMessage(
+        { id, request, bytes },
+        bytes ? [bytes.buffer] : [],
+      );
     });
   }
 

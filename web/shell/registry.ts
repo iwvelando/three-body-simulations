@@ -35,4 +35,12 @@ export const simulations: Simulation[] = [
       "The universe as two copper shells in a sea of fire. Stand where the clerk stands and read the calendar of Stable and Chaotic Eras.",
     load: () => import("../sims/mozi/MoziPage"),
   },
+  {
+    id: "flat",
+    title: "Into two dimensions",
+    source: "Death's End",
+    blurb:
+      "Space loses a dimension and everything falls flat. Drop in the Sun, a planet or a picture of your own, and see what is left.",
+    load: () => import("../sims/flat/FlatPage"),
+  },
 ];

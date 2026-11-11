@@ -11,6 +11,7 @@ import (
 	"threebody/engine/earth"
 	"threebody/engine/earth/chance"
 	"threebody/engine/earth/terrain"
+	"threebody/engine/flat"
 	"threebody/engine/mozi"
 )
 
@@ -23,6 +24,7 @@ type Simulation struct {
 var simulations = []Simulation{
 	{ID: "earth", Title: "Earth without life"},
 	{ID: "mozi", Title: "Mozi's machine"},
+	{ID: "flat", Title: "Into two dimensions"},
 }
 
 // decode reads a request into q, refusing fields q does not have.
@@ -127,8 +129,85 @@ func Handle(request string) (out string) {
 			return reply(mozi.Sky(q.SkyRequest))
 		}
 		return refuse("action", "Unknown action.")
+	case "flat":
+		switch e.Action {
+		case "catalog":
+			return reply(flat.Catalog(), nil)
+		case "painting-catalog":
+			return reply(flat.PaintingCatalog(), nil)
+		case "run":
+			var q struct {
+				envelope
+				flat.Request
+			}
+			if !decode(request, &q) {
+				return refuse("", "The request was not understood.")
+			}
+			return reply(flat.Run(q.Request))
+		case "sky":
+			var q struct {
+				envelope
+				flat.SkyRequest
+			}
+			if !decode(request, &q) {
+				return refuse("", "The request was not understood.")
+			}
+			return reply(flat.Sky(q.SkyRequest))
+		case "painting", "snowflakes":
+			return refuse("action", "Pictures travel as bytes; ask through Bytes.")
+		}
+		return refuse("action", "Unknown action.")
 	}
 	return refuse("sim", "Unknown simulation.")
+}
+
+// Bytes answers the requests whose pictures are too large to travel as
+// JSON numbers: {"sim":"flat","action":"painting", ...} with the picture
+// as RGBA bytes beside it, and {"sim":"flat","action":"snowflakes", ...}.
+// The reply's own pictures come back as bytes beside its JSON, which
+// says where each one is. A refusal is the usual JSON with nil bytes.
+func Bytes(request string, in []byte) (meta string, out []byte) {
+	defer func() {
+		if recover() != nil {
+			meta, out = refuse("", "The simulation could not finish. Try different settings."), nil
+		}
+	}()
+	var e envelope
+	if json.Unmarshal([]byte(request), &e) != nil {
+		return refuse("", "The request was not understood."), nil
+	}
+	if e.Sim != "flat" {
+		return refuse("sim", "Unknown simulation."), nil
+	}
+	switch e.Action {
+	case "painting":
+		var q struct {
+			envelope
+			flat.PaintingRequest
+		}
+		if !decode(request, &q) {
+			return refuse("", "The request was not understood."), nil
+		}
+		r, bytes, err := flat.Painting(q.PaintingRequest, in)
+		if err != nil {
+			return reply(nil, err), nil
+		}
+		return reply(r, nil), bytes
+	case "snowflakes":
+		var q struct {
+			envelope
+			flat.SnowRequest
+		}
+		if !decode(request, &q) {
+			return refuse("", "The request was not understood."), nil
+		}
+		r, bytes, err := flat.Snowflakes(q.SnowRequest)
+		if err != nil {
+			return reply(nil, err), nil
+		}
+		return reply(r, nil), bytes
+	}
+	return refuse("action", "Unknown action."), nil
 }
 
 // Terrain answers a terrain request: {"sim":"earth","action":"terrain",
