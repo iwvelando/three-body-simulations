@@ -1,0 +1,33 @@
+node_modules/
+dist/
+work/
+public/engine.wasm
+public/wasm_exec.js
+public/GO-LICENSE
+public/THIRD-PARTY-NOTICES.txt
+playwright-report/
+blob-report/
+test-results/
+*.log
+*.tsbuildinfo
+.DS_Store
+
+# Private listening transcript; copyrighted book text stays out of the repository.
+book-passage.txt
+.local/
+
+# Local settings and credentials (commit documented examples deliberately).
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+/.codex/
+CLAUDE.local.md
+.private/
+*.swp
+*~
+
+# Claude Code runtime state
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
