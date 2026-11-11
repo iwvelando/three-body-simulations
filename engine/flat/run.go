@@ -192,7 +192,8 @@ func (f fall) bands(z float64) []float64 {
 		if s < z {
 			after = sum(f.between(s, z)) / f.h
 		}
-		out[k] = math.Sqrt(after / math.Pi)
+		// Rounding can leave a hair less than nothing.
+		out[k] = math.Sqrt(math.Max(0, after) / math.Pi)
 	}
 	return out
 }

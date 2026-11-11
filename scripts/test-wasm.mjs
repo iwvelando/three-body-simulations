@@ -63,6 +63,16 @@ assert.equal(
 const fall = ask({ sim: "flat", action: "run", body: "earth" });
 assert.equal(fall.rings.at(-1).layer, "ocean");
 assert.equal(fall.frames.rim.length, fall.frames.time.length);
+// Rounding differs between processors and WebAssembly; no body's fall
+// may come back without a number on any of them.
+for (const body of ask({ sim: "flat", action: "catalog" }).bodies)
+  for (const landing of ["shells", "spread"])
+    assert.equal(
+      ask({ sim: "flat", action: "run", body: body.id, models: { landing } })
+        .error,
+      undefined,
+      `${body.id} ${landing}`,
+    );
 assert.equal(ask({ sim: "flat", action: "sky" }).bodies.length, 10);
 assert.equal(ask({ sim: "flat", action: "painting" }).field, "action");
 const picture = new Uint8Array(4 * 16 * 12).map((_, i) => (i * 37) % 256);
