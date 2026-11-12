@@ -25,16 +25,8 @@ export type Simulation = {
   load: () => Promise<{ default: ComponentType<SimulationProps> }>;
 };
 
+// Listed in the order their scenes come up in the books.
 export const simulations: Simulation[] = [
-  {
-    id: "earth",
-    title: "Earth without life",
-    source: "Death's End",
-    blurb:
-      "Uncheck Life and run the planet's four and a half billion years again. Does it keep its oceans?",
-    icon: EarthIcon,
-    load: () => import("../sims/earth/EarthPage"),
-  },
   {
     id: "mozi",
     title: "Mozi's machine",
@@ -43,6 +35,15 @@ export const simulations: Simulation[] = [
       "The universe as two copper shells in a sea of fire. Stand where the clerk stands and read the calendar of Stable and Chaotic Eras.",
     icon: MoziIcon,
     load: () => import("../sims/mozi/MoziPage"),
+  },
+  {
+    id: "earth",
+    title: "Earth without life",
+    source: "Death's End",
+    blurb:
+      "Uncheck Life and run the planet's four and a half billion years again. Does it keep its oceans?",
+    icon: EarthIcon,
+    load: () => import("../sims/earth/EarthPage"),
   },
   {
     id: "flat",

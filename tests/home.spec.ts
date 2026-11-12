@@ -11,6 +11,15 @@ test("the list of simulations waits behind a spoiler warning", async ({
   await page.goto("/");
   await ready(page);
   await expect(page.getByRole("main")).toContainText("spoilers");
+  // The trilogy's name is less known than its books: the warning names each.
+  const warning = page.getByRole("region", { name: "Before you go on" });
+  await expect(warning).toContainText("Remembrance of Earth's Past");
+  await expect(warning.locator("cite")).toHaveText([
+    "Remembrance of Earth's Past",
+    "The Three-Body Problem",
+    "The Dark Forest",
+    "Death's End",
+  ]);
   await expect(
     page.getByRole("link", { name: /Earth without life/ }),
   ).toHaveCount(0);
@@ -59,6 +68,12 @@ test("each simulation in the list has a picture of its own", async ({
   await page.getByRole("button", { name: /show the simulations/i }).click();
   const links = page.locator(".sims a");
   await expect(links).toHaveCount(3);
+  // In the order the scenes come up in the books.
+  await expect(page.locator(".sims .sim-title")).toHaveText([
+    "Mozi's machine",
+    "Earth without life",
+    "Into two dimensions",
+  ]);
   const drawings: string[] = [];
   for (const link of await links.all()) {
     const icon = link.locator("svg.sim-icon");
