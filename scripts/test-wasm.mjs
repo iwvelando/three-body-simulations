@@ -104,7 +104,35 @@ const snow = globalThis.threeBodyBytes(
   JSON.stringify({ sim: "flat", action: "snowflakes", count: 2, size: 32 }),
 );
 assert.equal(snow.bytes.length, 2 * 32 * 32);
+assert.equal(ask({ sim: "diaz", action: "catalog" }).bodies.length, 9);
+assert.equal(ask({ sim: "diaz", action: "run" }).field, "action");
+const mercuryFall = globalThis.threeBodyFloats(
+  JSON.stringify({ sim: "diaz", action: "run", preset: "plan" }),
+);
+const fallen = JSON.parse(mercuryFall.json);
+assert.ok(mercuryFall.floats instanceof Float32Array);
+assert.equal(fallen.falls, true);
+assert.equal(fallen.places.frames, fallen.time.length);
+const lastFlow = fallen.flows.at(-1);
+assert.equal(
+  mercuryFall.floats.length,
+  lastFlow.radii +
+    lastFlow.count *
+      (fallen.chapters[lastFlow.chapter].to -
+        fallen.chapters[lastFlow.chapter].from +
+        1),
+);
+// The Earth starts about one AU from the Sun.
+assert.ok(
+  Math.abs(Math.hypot(...mercuryFall.floats.subarray(9, 12)) - 1) < 0.02,
+);
+assert.equal(
+  typeof globalThis.threeBodyFloats(
+    JSON.stringify({ sim: "diaz", action: "run", preset: "x" }),
+  ),
+  "string",
+);
 console.log(
-  "WASM bridge: Earth catalog, runs, terrain arrays and refusals; Mozi calendar and sky; flat falls, sky, pictures and snow as bytes passed.",
+  "WASM bridge: Earth catalog, runs, terrain arrays and refusals; Mozi calendar and sky; flat falls, sky, pictures and snow as bytes; Mercury's fall as numbers passed.",
 );
 process.exit(0);

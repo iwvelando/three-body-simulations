@@ -7,7 +7,7 @@ import { afterglow, Fall, momentOf } from "./Fall";
 import { bare, duration, figure, length, named } from "./format";
 import { Caveat, query, Tabs, useStudy } from "./link";
 import { PaintingView } from "./Painting";
-import { Panel } from "./Panel";
+import { Panel } from "../../shell/Panel";
 import { Science } from "./Science";
 import { SkyView } from "./SkyView";
 import type { Catalog, PaintingCatalog, Run, Snow } from "./types";

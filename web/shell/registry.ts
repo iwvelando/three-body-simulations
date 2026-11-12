@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { Engine } from "./engine";
-import { EarthIcon, FlatIcon, MoziIcon } from "./icons";
+import { DiazIcon, EarthIcon, FlatIcon, MoziIcon } from "./icons";
 
 // A simulation is a page of its own, loaded only when opened. To add one:
 // write its engine package in Go (engine/<id>), register it in
@@ -35,6 +35,15 @@ export const simulations: Simulation[] = [
       "The universe as two copper shells in a sea of fire. Stand where the clerk stands and read the calendar of Stable and Chaotic Eras.",
     icon: MoziIcon,
     load: () => import("../sims/mozi/MoziPage"),
+  },
+  {
+    id: "diaz",
+    title: "Mercury into the Sun",
+    source: "The Dark Forest",
+    blurb:
+      "A Wallfacer's plan: bomb Mercury into the Sun and let the Sun's spiral of gas drag every planet in after it. Run it as the novel tells it, or with published physics alone.",
+    icon: DiazIcon,
+    load: () => import("../sims/diaz/DiazPage"),
   },
   {
     id: "earth",

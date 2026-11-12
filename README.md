@@ -18,6 +18,12 @@ In *The Three-Body Problem* a player who goes by Mozi explains an unreliable sun
 
 The novel gives no numbers, so everything about this machine is invented and marked speculative. It is the machine alone, not a test of it against a real sky. See [its models](docs/models-mozi.md).
 
+## Mercury into the Sun
+
+In *The Dark Forest* a Wallfacer's secret plan is worked out by the man sent to break it: enough hydrogen bombs on Mercury to drop it into the Sun, a spiral of the Sun's own gas thrown out by the impact, and every other planet dragged in after it. This page runs the plan in a three-dimensional Solar System, step by step, with a published model for each step.
+
+Published physics stops the plan at the first step, as the novel itself says, and again at each step after. So three rules are invented and marked speculative: bombs strong enough, a Sun that erupts, gas that stays. One starting point uses all three; the others use one or none. See [its models](docs/models-diaz.md).
+
 ## Into two dimensions
 
 At the end of *Death's End* a slip of flat space arrives and the Solar System falls into it. This page drops things into that plane: the Sun and each planet, a picture of your own, and the whole system at once. One number, how thin flat matter is spread, sets every size; two rules for how matter lands can be swapped. A picture can be let fall alone or left buried in Pluto, then restored by running the rule backwards.
@@ -45,13 +51,15 @@ make preview-lan   # HTTPS on the local network, for a phone
 | `engine/earth/chance` | The ensemble of random planets |
 | `engine/mozi` | Mozi's machine: shells, gears, the clerk's calendar |
 | `engine/flat` | The fall into two dimensions: bodies, the sky, snow crystals, a picture's flow |
+| `engine/diaz` | Mercury into the Sun: orbits, bombs, the impact, the gas, drag |
 | `engine/api.go` | JSON front door for every simulation |
 | `cmd/wasm` | WebAssembly transport only |
 | `web/shell` | Site shell, simulation registry, engine client |
 | `web/sims/earth` | The Earth page: globe, timeline, panel, charts, sources |
 | `web/sims/mozi` | Mozi's machine: the clerk's sky, the cutaway, the calendar |
 | `web/sims/flat` | Into two dimensions: a body falls, a painting, the whole sky |
-| `docs/` | [Architecture](docs/architecture.md), models and sources for [Earth](docs/models.md), [Mozi's machine](docs/models-mozi.md) and [the fall into two dimensions](docs/models-flat.md) |
+| `web/sims/diaz` | Mercury into the Sun: the Solar System in 3D, the step-by-step account |
+| `docs/` | [Architecture](docs/architecture.md), models and sources for [Earth](docs/models.md), [Mozi's machine](docs/models-mozi.md), [the fall into two dimensions](docs/models-flat.md) and [Mercury into the Sun](docs/models-diaz.md) |
 
 More simulations from the trilogy are meant to follow; [AGENTS.md](AGENTS.md) says how to add one.
 

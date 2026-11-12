@@ -5,7 +5,7 @@ import { resolve, type Study } from "../../shell/study";
 import { useLatest } from "../../shell/useLatest";
 import { figure, length, still } from "./format";
 import { Caveat, Tabs, useStudy } from "./link";
-import { Panel } from "./Panel";
+import { Panel } from "../../shell/Panel";
 import { flatCanvas, Sheet } from "./Sheet";
 import type { Painted, PaintingCatalog } from "./types";
 

@@ -30,6 +30,7 @@ test("the list of simulations waits behind a spoiler warning", async ({
   for (const name of [
     /Earth without life/,
     /Mozi's machine/,
+    /Mercury into the Sun/,
     /Into two dimensions/,
   ])
     await expect(page.getByRole("link", { name })).toBeVisible();
@@ -67,10 +68,11 @@ test("each simulation in the list has a picture of its own", async ({
   await ready(page);
   await page.getByRole("button", { name: /show the simulations/i }).click();
   const links = page.locator(".sims a");
-  await expect(links).toHaveCount(3);
+  await expect(links).toHaveCount(4);
   // In the order the scenes come up in the books.
   await expect(page.locator(".sims .sim-title")).toHaveText([
     "Mozi's machine",
+    "Mercury into the Sun",
     "Earth without life",
     "Into two dimensions",
   ]);
@@ -90,7 +92,7 @@ test("each simulation in the list has a picture of its own", async ({
     expect(box.x + box.width).toBeLessThanOrEqual(title.x);
     drawings.push(await icon.innerHTML());
   }
-  expect(new Set(drawings).size).toBe(3);
+  expect(new Set(drawings).size).toBe(4);
   await expect(
     page.getByRole("link", { name: /^Earth without life/ }),
   ).toBeVisible();

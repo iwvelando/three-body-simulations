@@ -130,6 +130,25 @@ try {
         await page.waitForTimeout(1500);
         await shot(`surface-${scene.split(" ")[0].toLowerCase()}`);
       }
+      for (const [name, hash, at] of [
+        ["diaz-spiral", "#/diaz?look=inner", null],
+        ["diaz-whole", "#/diaz", null],
+        ["diaz-dive", "#/diaz?look=sun", 1.97],
+        ["diaz-jupiter", "#/diaz", 6.5],
+        ["diaz-jet", "#/diaz?look=inner&c=eyJ2IjoxLCJiIjoiZ3JhbnRlZCJ9", 2.5],
+        ["diaz-published", "#/diaz?c=eyJ2IjoxLCJiIjoicHVibGlzaGVkIn0", null],
+      ]) {
+        await page.goto(base + hash);
+        // The same page at another address is not a navigation.
+        await page.reload();
+        await page.getByTestId("verdict").waitFor();
+        if (at !== null) await slide(page, "Time", at);
+        await page.waitForTimeout(700);
+        await shot(name);
+      }
+      await page.goto(base + "#/diaz/science");
+      await page.getByRole("heading", { level: 1 }).waitFor();
+      await shot("diaz-science");
       await page.goto(base + "#/mozi");
       await page.getByTestId("verdict").waitFor();
       await page.waitForTimeout(600);

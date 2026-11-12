@@ -1,13 +1,7 @@
 import type { ReactNode } from "react";
-import type { Catalog } from "../../shell/catalog";
-import { Slider } from "../../shell/Slider";
-import {
-  edited,
-  resolve,
-  startOf,
-  withParam,
-  type Study,
-} from "../../shell/study";
+import type { Catalog } from "./catalog";
+import { Slider } from "./Slider";
+import { edited, resolve, startOf, withParam, type Study } from "./study";
 
 // Settings drawn entirely from one of the engine's catalogs.
 export function Panel({

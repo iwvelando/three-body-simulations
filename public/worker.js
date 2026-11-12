@@ -32,6 +32,15 @@ onmessage = ({ data }) => {
         result.cover = reply.cover;
         transfer.push(reply.heights.buffer, reply.cover.buffer);
       }
+    } else if (data.request.sim === "diaz" && data.request.action === "run") {
+      // Every body's and parcel's place at every moment, as one array.
+      const reply = threeBodyFloats(JSON.stringify(data.request));
+      if (typeof reply === "string") result = JSON.parse(reply);
+      else {
+        result = JSON.parse(reply.json);
+        result.floats = reply.floats;
+        transfer.push(reply.floats.buffer);
+      }
     } else if (
       data.request.action === "painting" ||
       data.request.action === "snowflakes"

@@ -11,13 +11,8 @@ export type Layer = {
   schematic?: string;
   sea?: boolean;
 };
-export type Surface = {
-  kind: string;
-  colors: string[];
-  spot?: string;
-  rings?: string;
-  caps?: boolean;
-};
+import type { Surface } from "../../shell/faces";
+export type { Surface };
 export type Body = {
   surface: Surface;
   id: string;

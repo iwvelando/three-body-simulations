@@ -30,6 +30,18 @@ func main() {
 		}
 		return map[string]any{"json": meta, "heights": floats(heights), "cover": floats(cover)}
 	}))
+	// A run whose places come back as one Float32Array beside the JSON:
+	// { json, floats }, or the refusal JSON alone.
+	js.Global().Set("threeBodyFloats", js.FuncOf(func(this js.Value, args []js.Value) any {
+		if len(args) != 1 || args[0].Type() != js.TypeString {
+			return `{"error":"Expected one JSON string.","field":""}`
+		}
+		meta, out := engine.Floats(args[0].String())
+		if out == nil {
+			return meta
+		}
+		return map[string]any{"json": meta, "floats": floats(out)}
+	}))
 	// Pictures go in and come out as Uint8Arrays beside the JSON:
 	// (json, bytes?) gives { json, bytes }, or the refusal JSON alone.
 	js.Global().Set("threeBodyBytes", js.FuncOf(func(this js.Value, args []js.Value) any {
