@@ -94,7 +94,7 @@ func TestChanceEnsemble(t *testing.T) {
 
 func TestSimulationsListsMozi(t *testing.T) {
 	list := call(t, `{"action":"simulations"}`)["simulations"].([]any)
-	if len(list) != 3 || list[1].(map[string]any)["id"] != "mozi" || list[2].(map[string]any)["id"] != "flat" {
+	if len(list) != 4 || list[1].(map[string]any)["id"] != "mozi" || list[2].(map[string]any)["id"] != "flat" {
 		t.Fatalf("simulations: %v", list)
 	}
 }
@@ -210,5 +210,45 @@ func TestFlatBytes(t *testing.T) {
 		if out != nil || json.Unmarshal([]byte(meta), &refusal) != nil || refusal["error"] == "" || refusal["field"] != field {
 			t.Errorf("%s: %s", request, meta)
 		}
+	}
+}
+
+func TestDiazCatalogAndRunBesideItsNumbers(t *testing.T) {
+	list := call(t, `{"action":"simulations"}`)["simulations"].([]any)
+	if len(list) != 4 || list[3].(map[string]any)["id"] != "diaz" {
+		t.Fatalf("simulations: %v", list)
+	}
+	catalog := call(t, `{"sim":"diaz","action":"catalog"}`)
+	if len(catalog["bodies"].([]any)) != 9 || len(catalog["presets"].([]any)) != 3 {
+		t.Fatalf("catalog: %v", catalog)
+	}
+	// The run's places and gas are too many to travel as JSON numbers.
+	if out := call(t, `{"sim":"diaz","action":"run"}`); out["field"] != "action" {
+		t.Fatalf("a run through Handle: %v", out)
+	}
+	meta, floats := Floats(`{"sim":"diaz","action":"run","preset":"plan"}`)
+	var run map[string]any
+	if err := json.Unmarshal([]byte(meta), &run); err != nil {
+		t.Fatal(err)
+	}
+	if run["falls"] != true || run["speculative"] != true {
+		t.Fatalf("run: %v", meta[:200])
+	}
+	if _, has := run["Floats"]; has || strings.Contains(meta, "floats") {
+		t.Fatal("the numbers must not also be in the JSON")
+	}
+	frames := len(run["time"].([]any))
+	if len(floats) < frames*9*3 {
+		t.Fatalf("%d numbers for %d frames", len(floats), frames)
+	}
+	meta, floats = Floats(`{"sim":"diaz","action":"run","params":{"bombs.count":1}}`)
+	if floats != nil || !strings.Contains(meta, `"field":"params.bombs.count"`) {
+		t.Fatalf("refusal: %s", meta)
+	}
+	if meta, floats = Floats(`{"sim":"earth","action":"run"}`); floats != nil || !strings.Contains(meta, `"field":"sim"`) {
+		t.Fatalf("refusal: %s", meta)
+	}
+	if meta, _ = Floats(`{"sim":"diaz","action":"run","extra":1}`); !strings.Contains(meta, "error") {
+		t.Fatalf("unknown field: %s", meta)
 	}
 }

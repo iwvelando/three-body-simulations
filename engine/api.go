@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"threebody/engine/core"
+	"threebody/engine/diaz"
 	"threebody/engine/earth"
 	"threebody/engine/earth/chance"
 	"threebody/engine/earth/terrain"
@@ -25,6 +26,7 @@ var simulations = []Simulation{
 	{ID: "earth", Title: "Earth without life"},
 	{ID: "mozi", Title: "Mozi's machine"},
 	{ID: "flat", Title: "Into two dimensions"},
+	{ID: "diaz", Title: "Mercury into the Sun"},
 }
 
 // decode reads a request into q, refusing fields q does not have.
@@ -157,8 +159,47 @@ func Handle(request string) (out string) {
 			return refuse("action", "Pictures travel as bytes; ask through Bytes.")
 		}
 		return refuse("action", "Unknown action.")
+	case "diaz":
+		switch e.Action {
+		case "catalog":
+			return reply(diaz.Catalog(), nil)
+		case "run":
+			return refuse("action", "A run's places travel as numbers; ask through Floats.")
+		}
+		return refuse("action", "Unknown action.")
 	}
 	return refuse("sim", "Unknown simulation.")
+}
+
+// Floats answers {"sim":"diaz","action":"run", ...}. Where every body
+// and parcel of gas is at every moment is too much to travel as JSON
+// numbers, so those come back beside the JSON, which says where each
+// lies among them; the transport hands them over as a typed array. A
+// refusal is the usual JSON with nil numbers.
+func Floats(request string) (meta string, out []float32) {
+	defer func() {
+		if recover() != nil {
+			meta, out = refuse("", "The simulation could not finish. Try different settings."), nil
+		}
+	}()
+	var q struct {
+		envelope
+		diaz.Request
+	}
+	if !decode(request, &q) {
+		return refuse("", "The request was not understood."), nil
+	}
+	if q.Sim != "diaz" {
+		return refuse("sim", "Unknown simulation."), nil
+	}
+	if q.Action != "run" {
+		return refuse("action", "Unknown action."), nil
+	}
+	r, err := diaz.Run(q.Request)
+	if err != nil {
+		return reply(nil, err), nil
+	}
+	return reply(r, nil), r.Floats
 }
 
 // Bytes answers the requests whose pictures are too large to travel as

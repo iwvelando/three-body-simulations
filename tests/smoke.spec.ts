@@ -84,3 +84,15 @@ test("@smoke robots and sitemap point search engines at the canonical page only"
     CANONICAL,
   ]);
 });
+
+test("@smoke the engine drops Mercury into the Sun", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/#/diaz");
+  await expect(page.locator("html")).toHaveAttribute("data-engine", "ready", {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId("verdict")).toContainText(/reaches the Sun/);
+  await expect(page.getByTestId("speculative")).toContainText("Speculative");
+  expect(errors).toEqual([]);
+});

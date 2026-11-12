@@ -344,7 +344,8 @@ button.primary {
 /* Earth and Mozi share the page grid: stage, settings, charts. */
 .earth,
 .mozi,
-.flat {
+.flat,
+.diaz {
   display: grid;
   gap: 1.5rem 2.5rem;
   grid-template-columns: minmax(0, 1fr);
@@ -355,7 +356,8 @@ button.primary {
 }
 .earth > .notice,
 .mozi > .notice,
-.flat > .notice {
+.flat > .notice,
+.diaz > .notice {
   grid-area: notice;
   margin: 0;
 }
@@ -389,7 +391,8 @@ button.primary {
 @media (min-width: 62rem) {
   .earth,
   .mozi,
-  .flat {
+  .flat,
+  .diaz {
     grid-template-columns: minmax(0, 1fr) 22rem;
     grid-template-areas: "intro intro" "notice notice" "stage controls" "charts controls";
     /* A tall panel must lengthen only the last row, or opening Models
@@ -1476,4 +1479,138 @@ thead th {
   .field {
     transition: opacity 0.2s;
   }
+}
+
+/* Mercury into the Sun */
+.diaz-looks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+/* On a phone the settings come before the view, closed, so they are in
+   reach without scrolling past the whole account of the run. */
+@media (max-width: 61.99rem) {
+  .diaz {
+    grid-template-areas: "intro" "notice" "controls" "stage" "charts";
+  }
+}
+.diaz-looks {
+  align-items: center;
+}
+.diaz-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 12rem;
+  max-width: 20rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.diaz-zoom input {
+  flex: 1;
+  min-width: 0;
+}
+.diaz-looks button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.diaz-figure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  width: min(100%, 44rem);
+}
+.diaz-figure figcaption {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.system {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #05070c;
+}
+.system canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* A drag on the view turns it, in any direction, and two fingers zoom
+   it, so a touch that starts here must never scroll or zoom the page. */
+.system.turns {
+  cursor: grab;
+}
+.system.turns,
+.system.turns canvas {
+  touch-action: none;
+}
+.system-names {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.system-names span {
+  position: absolute;
+  transform: translate(0.6rem, -50%);
+  color: #dfe5ee;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #05070c;
+}
+.diaz-steps,
+.diaz-fates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.625rem;
+  max-width: 64ch;
+}
+.diaz-steps h2,
+.diaz-fates h2 {
+  font-size: 1.25rem;
+}
+.diaz-steps ol {
+  display: grid;
+  gap: 0.5rem;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+.diaz-fates table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  overflow-wrap: anywhere;
+  font-size: 0.9375rem;
+}
+.diaz-fates th,
+.diaz-fates td {
+  /* Unlike the site's tables of figures, these cells hold sentences and
+     must wrap on a phone. */
+  white-space: normal;
+  text-align: left;
+  padding: 0.3rem 0.75rem 0.3rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+}
+.diaz-fates thead th {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.diaz .verdict {
+  max-width: 64ch;
+}
+.diaz .moment dl {
+  grid-template-columns: repeat(2, auto);
+}
+.diaz-slowed {
+  visibility: hidden;
+}
+.diaz-slowed[data-on] {
+  visibility: visible;
 }

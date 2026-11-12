@@ -6,7 +6,7 @@ import { useLatest } from "../../shell/useLatest";
 import { tidy, useCanvas } from "./canvas";
 import { bandColor, css, figure, length, scatter } from "./format";
 import { Caveat, query, Tabs, useStudy } from "./link";
-import { Panel } from "./Panel";
+import { Panel } from "../../shell/Panel";
 import type { Catalog, Sky } from "./types";
 
 const AU = 149.6e6;

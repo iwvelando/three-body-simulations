@@ -69,3 +69,18 @@ export function FlatIcon() {
     </Icon>
   );
 }
+
+// A sun, the spiral unwinding from it, and a small planet on its way in.
+export function DiazIcon() {
+  return (
+    <Icon>
+      <path
+        className="i-fall"
+        d="M32 32c0-5 7-6 9-1s-2 12-9 12-14-6-13-15 10-16 20-14 17 11 15 21-12 19-24 18"
+      />
+      <circle className="i-lifeless" cx="32" cy="32" r="8" />
+      <circle className="i-ink" cx="13" cy="12" r="3.5" />
+      <path className="i-dune" d="M16 15 24 24" />
+    </Icon>
+  );
+}
