@@ -164,8 +164,10 @@ function Home({ warned, onWarned }: { warned: boolean; onWarned: () => void }) {
           <h2 id="spoilers-title">Before you go on</h2>
           <p>
             These pages contain spoilers for all three books of{" "}
-            <cite>Remembrance of Earth's Past</cite>, including how the last one
-            ends. Even the names of the simulations give things away.
+            <cite>Remembrance of Earth's Past</cite>:{" "}
+            <cite>The Three-Body Problem</cite>, <cite>The Dark Forest</cite>{" "}
+            and <cite>Death's End</cite>, including how the last one ends. Even
+            the names of the simulations give things away.
           </p>
           <button type="button" className="primary" onClick={onWarned}>
             I understand, show the simulations
