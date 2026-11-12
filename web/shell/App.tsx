@@ -147,11 +147,14 @@ function Home({ warned, onWarned }: { warned: boolean; onWarned: () => void }) {
           {simulations.map((s) => (
             <li key={s.id}>
               <a href={`#/${s.id}`}>
-                <span className="sim-title">{s.title}</span>
-                <span className="sim-blurb">{s.blurb}</span>
-                <span className="sim-source">
-                  From <cite>{s.source}</cite>
+                <span className="sim-words">
+                  <span className="sim-title">{s.title}</span>
+                  <span className="sim-blurb">{s.blurb}</span>
+                  <span className="sim-source">
+                    From <cite>{s.source}</cite>
+                  </span>
                 </span>
+                <s.icon />
               </a>
             </li>
           ))}

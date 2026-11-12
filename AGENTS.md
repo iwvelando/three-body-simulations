@@ -21,7 +21,7 @@ A strictly static site of simulations inspired by scenes in Liu Cixin's *Remembr
 ## Adding a simulation
 
 1. Write `engine/<id>` with its own catalog and tests; register it in `engine/api.go` (`simulations` and the dispatch).
-2. Add `web/sims/<id>` with a default-exported page taking `SimulationProps`, and an entry in `web/shell/registry.ts`.
+2. Add `web/sims/<id>` with a default-exported page taking `SimulationProps`, and an entry in `web/shell/registry.ts` with a picture for the home page's list (`web/shell/icons.tsx`).
 3. Give it a science-and-sources page with the scene's attribution and its references.
 4. Document it in `docs/`.
 
@@ -49,7 +49,7 @@ The readiness marker is `html[data-engine="ready"]`. Respect reduced motion. On 
 
 ## Git and deployment
 
-Work on a branch and open a PR; never push to `main` or force-push, and do not commit, push or publish unless asked. The `main` ruleset allows squash merges only and requires the `verify` check, which passes only when `check` (format, vet, Go, WASM bridge, build, Chromium desktop and phone) and `webkit` (iPhone-profile WebKit on macOS) both pass. Merging to `main` verifies again, then the `deploy` job publishes that run's `dist/` through the main-only `production` environment, invalidates CloudFront and checks live headers; `smoke` then runs the `@smoke` tests against the live site (`BASE_URL`). A failure on `main` opens an issue. Keep `@smoke` tests fast and read-only.
+Work on a branch and open a PR; never push to `main` or force-push, and do not commit, push or publish unless asked. The `main` ruleset allows squash merges only and requires the `verify` check, which passes only when every test job passes: `check` (format, vet, Go, WASM bridge, build), `go race` (the race pass in shards, `scripts/go-race.mjs`), `browser` (Chromium desktop and phone, a runner each) and `webkit` (iPhone-profile WebKit on macOS). A pull request run tests the merge of its head into `main` and uploads its build as `dist-<tree>`. On `main`, the `reuse` job looks for a passing pull request run of that exact tree; when it finds one the tests are skipped and the `deploy` job publishes that run's `dist/`, otherwise the full suite runs first. `deploy` publishes through the main-only `production` environment, invalidates CloudFront and checks live headers; `smoke` then runs the `@smoke` tests against the live site (`BASE_URL`). A failure on `main` opens an issue. Keep `@smoke` tests fast and read-only.
 
 The CSP lives in three places and must match exactly: `deploy/content-security-policy.txt` (preview and browser tests send it), `content_security_policy` in cloud-accounts' `sites/three-body.isaacvelando.com/site.tf` (CloudFront sends it), and the deploy job's live-header comparison. Change cloud-accounts first, then this file.
 

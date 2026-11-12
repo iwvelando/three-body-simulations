@@ -246,8 +246,10 @@ button.primary {
 }
 .sims a {
   display: grid;
-  gap: 0.375rem;
-  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.25rem 1.25rem 1.25rem;
   text-decoration: none;
   background: var(--raised);
   border: 1px solid var(--line);
@@ -257,6 +259,66 @@ button.primary {
 .sims a:hover {
   border-color: var(--ink);
   border-left-color: var(--living);
+}
+/* The words come first in the page, so the link is named by its title;
+   the picture is drawn to their left. */
+.sim-words {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  gap: 0.375rem;
+}
+.sim-icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 4.5rem;
+  height: 4.5rem;
+}
+.sim-icon .i-living {
+  fill: var(--living);
+}
+.sim-icon .i-lifeless {
+  fill: var(--lifeless);
+}
+.sim-icon .i-ink {
+  fill: var(--ink);
+}
+.sim-icon .i-land {
+  fill: var(--raised);
+  opacity: 0.55;
+}
+.sim-icon .i-dune,
+.sim-icon .i-fall {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.35;
+}
+.sim-icon .i-fall {
+  stroke-dasharray: 2 4;
+  opacity: 0.6;
+}
+.sim-icon .i-shell {
+  fill: var(--raised);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.sim-icon .i-faint {
+  opacity: 0.3;
+}
+.sim-icon .i-mid {
+  opacity: 0.6;
+}
+@media (max-width: 30rem) {
+  .sims a {
+    gap: 1rem;
+    padding-left: 1rem;
+  }
+  .sim-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
 }
 .sim-title {
   font-family: "IBM Plex Serif", Georgia, serif;

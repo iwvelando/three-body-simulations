@@ -11,7 +11,7 @@
     "build": "npm run wasm && node scripts/build-notices.mjs && tsc --noEmit && vite build && node scripts/check-dist.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "preview:lan": "vite preview --host 0.0.0.0 --mode lan",
-    "test": "go test ./... && npm run wasm && node scripts/test-wasm.mjs",
+    "test": "node --test scripts/go-race.test.mjs && go test ./... && npm run wasm && node scripts/test-wasm.mjs",
     "test:browser": "playwright test",
     "share-card": "node scripts/share-card.mjs",
     "format": "prettier --write web scripts tests public/worker.js *.json *.ts index.html",
