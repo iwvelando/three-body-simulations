@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { eraAt } from "./format";
+import { dayOf, eraAt } from "./format";
 import type { Run } from "./types";
 
 // How many days pass in a second of play.
@@ -83,7 +83,7 @@ export function Timeline({
         <input
           type="range"
           aria-label="Time"
-          aria-valuetext={`Day ${Math.floor(time) + 1}`}
+          aria-valuetext={`Day ${dayOf(time, run.span)}`}
           min={0}
           max={run.span}
           step={0.01}

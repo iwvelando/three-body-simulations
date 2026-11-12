@@ -15,6 +15,7 @@ export function Panel({
   study,
   hint,
   onStudy,
+  onPreset,
   onReset,
   onCopy,
   copied,
@@ -23,6 +24,8 @@ export function Panel({
   study: Study;
   hint: ReactNode;
   onStudy: (update: (s: Study) => Study) => void;
+  // Told when a starting point is chosen, after the study has been set.
+  onPreset?: (id: string) => void;
   onReset: () => void;
   onCopy: () => void;
   copied: boolean;
@@ -56,9 +59,10 @@ export function Panel({
               type="radio"
               name="preset"
               checked={study.preset === p.id && !edited(study)}
-              onChange={() =>
-                onStudy(() => ({ preset: p.id, models: {}, params: {} }))
-              }
+              onChange={() => {
+                onStudy(() => ({ preset: p.id, models: {}, params: {} }));
+                onPreset?.(p.id);
+              }}
             />
             <span className="preset-name">{p.label}</span>
             <span className="preset-note">{p.summary}</span>

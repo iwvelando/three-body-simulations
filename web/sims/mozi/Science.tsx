@@ -1,3 +1,4 @@
+import { placeOf } from "../../shell/address";
 import type { Catalog } from "./types";
 
 // Where the idea came from, what the machine computes, what was made up
@@ -7,7 +8,7 @@ export function Science({ catalog }: { catalog: Catalog }) {
   return (
     <main className="page science">
       <p className="back">
-        <a href="#/mozi">Back to the simulation</a>
+        <a href={placeOf("mozi")}>Back to the simulation</a>
       </p>
       <h1>The scene and what is invented</h1>
 

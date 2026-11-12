@@ -548,3 +548,128 @@ test("a picture chosen before the sample arrives is kept", async ({ page }) => {
   await page.waitForTimeout(2500);
   await expect(page.getByTestId("source")).toContainText("mine.png");
 });
+
+test("a slider put back to its start leaves the chosen body alone", async ({
+  page,
+}) => {
+  await open(page, "#/flat?body=earth");
+  await expect(verdict(page)).toContainText("flat Earth");
+  await panel(page);
+  const body = page.getByRole("combobox", { name: "What falls" });
+  const thickness = page.getByRole("slider", {
+    name: "Thickness of the sheet",
+  });
+  const start = Number(await thickness.inputValue());
+  await slide(thickness, start - 1);
+  await expect(page.getByRole("radio", { name: /thirty seconds/ }))
+    .not // edited
+    .toBeChecked();
+  await slide(thickness, start);
+  await expect(
+    page.getByRole("radio", { name: /thirty seconds/ }),
+  ).toBeChecked();
+  await expect(body).toHaveValue("earth");
+  // Choosing a starting point still turns to the body it is about.
+  await page.getByRole("radio", { name: /Starry Night/ }).check();
+  await expect(body).toHaveValue("jupiter");
+});
+
+test("the painting comes back after the browser takes its drawing surface away", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== "chromium", "needs the lose-context extension");
+  // Still, so nothing but the recovery itself would draw it again.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page, "#/flat/painting");
+  await expect(page.getByTestId("size")).toContainText("km");
+  const sheet = page.getByTestId("flat-picture");
+  const frames = async () => Number(await sheet.getAttribute("data-frames"));
+  await expect.poll(frames).toBeGreaterThan(0);
+  await page.waitForTimeout(400);
+  const before = await frames();
+  await sheet.locator("canvas").evaluate(async (el) => {
+    const gl = (el as HTMLCanvasElement).getContext("webgl")!;
+    const lose = gl.getExtension("WEBGL_lose_context")!;
+    lose.loseContext();
+    await new Promise((r) => setTimeout(r, 200));
+    lose.restoreContext();
+  });
+  await expect.poll(frames).toBeGreaterThan(before);
+  expect(
+    await sheet
+      .locator("canvas")
+      .evaluate((el) =>
+        (el as HTMLCanvasElement).getContext("webgl")!.isContextLost(),
+      ),
+  ).toBe(false);
+});
+
+test("every name on the flat sky can be read: none over another, none cut off", async ({
+  page,
+}) => {
+  for (const hash of [
+    "#/flat/sky",
+    "#/flat/sky?plain=1",
+    "#/flat/sky?show=inner",
+  ]) {
+    await open(page, hash);
+    await expect(verdict(page)).toBeVisible();
+    const canvas = page.getByTestId("sky").locator("canvas");
+    await expect(canvas).toHaveAttribute("data-labels", /Neptune|Mars/);
+    const { labels, width, height } = await canvas.evaluate((el) => ({
+      labels: JSON.parse((el as HTMLElement).dataset.labels!) as [
+        string,
+        number,
+        number,
+        number,
+        number,
+      ][],
+      width: el.getBoundingClientRect().width,
+      height: el.getBoundingClientRect().height,
+    }));
+    expect(labels.length).toBeGreaterThanOrEqual(5);
+    for (const [name, x, y, w, h] of labels) {
+      expect(x, name).toBeGreaterThanOrEqual(0);
+      expect(y, name).toBeGreaterThanOrEqual(0);
+      expect(x + w, name).toBeLessThanOrEqual(width);
+      expect(y + h, name).toBeLessThanOrEqual(height);
+    }
+    for (let i = 0; i < labels.length; i++)
+      for (let j = i + 1; j < labels.length; j++) {
+        const [a, ax, ay, aw, ah] = labels[i],
+          [b, bx, by, bw, bh] = labels[j];
+        const apart =
+          ax + aw <= bx || bx + bw <= ax || ay + ah <= by || by + bh <= ay;
+        expect(apart, `${a} and ${b} in ${hash}`).toBe(true);
+      }
+  }
+});
+
+test("a button that cannot be used looks it", async ({ page }) => {
+  await open(page, "#/flat/sky");
+  const novel = page.getByRole("button", { name: "As in the novel" });
+  const shuffle = page.getByRole("button", { name: "Shuffle the planets" });
+  await expect(novel).toBeDisabled();
+  const look = (b: Locator) =>
+    b.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return `${s.color} ${s.opacity} ${s.cursor}`;
+    });
+  expect(await look(novel)).not.toBe(await look(shuffle));
+  await shuffle.click();
+  await expect(novel).toBeEnabled();
+  expect(await look(novel)).toBe(await look(shuffle));
+});
+
+test("the science page leads back to the view and settings it was opened from", async ({
+  page,
+}) => {
+  await open(page, "#/flat/sky?plain=1");
+  await expect(verdict(page)).toBeVisible();
+  await page
+    .getByRole("link", { name: "The scene and what is invented" })
+    .click();
+  await page.getByRole("link", { name: "Back to the simulation" }).click();
+  await expect(page).toHaveURL(/#\/flat\/sky\?plain=1$/);
+});

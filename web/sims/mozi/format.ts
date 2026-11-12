@@ -6,10 +6,15 @@ export const days = (n: number) => {
   const r = Math.round(n);
   return r === 1 ? "1 day" : `${whole(r)} days`;
 };
-// Days are counted from 1, as a calendar does.
-export const dayOf = (t: number) => Math.floor(t) + 1;
-export const dayLabel = (t: number) =>
-  `Day ${dayOf(t).toLocaleString("en-US")}, hour ${Math.floor((t - Math.floor(t)) * 24)}`;
+// Days are counted from 1, as a calendar does. The calendar's last moment
+// is the end of its last day, not the start of one it does not have.
+const atEnd = (t: number, end: number) => t >= end && t > 0;
+export const dayOf = (t: number, end = Infinity) =>
+  atEnd(t, end) ? Math.ceil(end) : Math.floor(t) + 1;
+export const dayLabel = (t: number, end = Infinity) =>
+  `Day ${dayOf(t, end).toLocaleString("en-US")}, hour ${
+    atEnd(t, end) ? 24 : Math.floor((t - Math.floor(t)) * 24)
+  }`;
 export const eraName = (e: Era) =>
   e.kind === "stable" ? "Stable Era" : "Chaotic Era";
 

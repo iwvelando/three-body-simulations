@@ -526,3 +526,60 @@ test("on a phone, scrolling past a chart leaves the time alone, and a tap on it 
   await page.touchscreen.tap(box.x + box.width * 0.4, box.y + box.height / 2);
   await expect(when).toContainText("billion years ago");
 });
+
+test("the ways back from the science, surface and luck pages keep the planet as it was set", async ({
+  page,
+}) => {
+  await open(page);
+  await panel(page);
+  await page.getByRole("radio", { name: /Skeptic/ }).check();
+  await expect(page).toHaveURL(/#\/earth\?c=/);
+  const address = page.url();
+  for (const [out, back] of [
+    ["Zoom in to this surface", "Back to the planet"],
+    ["Was it luck?", "Back to the planet"],
+    ["The science and its sources", "Back to the simulation"],
+  ]) {
+    await page.getByRole("link", { name: out }).first().click();
+    await page.getByRole("link", { name: back }).click();
+    await expect(page).toHaveURL(address);
+    await panel(page);
+    await expect(page.getByRole("radio", { name: /Skeptic/ })).toBeChecked();
+  }
+});
+
+test("a mouse passing over a chart leaves the time alone; a press moves it", async ({
+  page,
+}) => {
+  test.skip(page.viewportSize()!.width < 700, "a mouse on a wide screen");
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const when = page.locator(".moment-when");
+  await expect(when).toHaveText("Today");
+  const chart = page.locator(".chart svg").first();
+  await chart.scrollIntoViewIfNeeded();
+  const box = (await chart.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height / 2);
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height / 2);
+  await page.waitForTimeout(200);
+  await expect(when).toHaveText("Today");
+  await page.mouse.down();
+  await expect(when).toContainText("billion years ago");
+  await page.mouse.up();
+});
+
+test("a readout below one moves with every step of its slider", async ({
+  page,
+}) => {
+  await open(page);
+  await panel(page);
+  const readout = page
+    .locator(".field", { hasText: "Distance from the Sun" })
+    .locator("output");
+  // Three steps below 1 AU, which two figures would still call 1.
+  await slide(
+    page.getByRole("slider", { name: "Distance from the Sun" }),
+    0.996,
+  );
+  await expect(readout).toHaveText("0.996 AU");
+});

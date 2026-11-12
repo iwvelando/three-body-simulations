@@ -504,3 +504,51 @@ test("on a phone, scrolling past the calendar leaves the day alone, and a tap on
   await page.touchscreen.tap(now.x + now.width * 0.6, now.y + now.height / 2);
   await expect(when).not.toHaveText(day);
 });
+
+test("changing a setting keeps the machine as it was turned", async ({
+  page,
+}) => {
+  await open(page);
+  await panel(page);
+  const canvas = machine(page).locator("canvas");
+  await expect(canvas).toBeVisible();
+  await canvas.evaluate((el) => ((window as any).__machine = el));
+  await slide(
+    page.getByRole("slider", { name: "Strength of the currents" }),
+    2,
+  );
+  await expect(verdict(page)).not.toContainText("11 Stable Eras");
+  expect(await canvas.evaluate((el) => (window as any).__machine === el)).toBe(
+    true,
+  );
+});
+
+test("the last moment of the calendar is the end of its last day", async ({
+  page,
+}) => {
+  await open(page);
+  await expect(verdict(page)).toContainText("2,000 days");
+  await slide(page.getByRole("slider", { name: "Time" }), 2000);
+  await expect(moment(page)).toContainText("Day 2,000, hour 24");
+  await expect(page.getByTestId("sky")).toHaveAttribute(
+    "aria-label",
+    /day 2000:/,
+  );
+});
+
+test("the science page leads back to the machine as it was set", async ({
+  page,
+}) => {
+  await open(page);
+  await panel(page);
+  await page.getByRole("radio", { name: /Rough seas/ }).check();
+  await expect(page).toHaveURL(/#\/mozi\?c=/);
+  const address = page.url();
+  await page
+    .getByRole("link", { name: "The scene and what is invented" })
+    .click();
+  await page.getByRole("link", { name: "Back to the simulation" }).click();
+  await expect(page).toHaveURL(address);
+  await panel(page);
+  await expect(page.getByRole("radio", { name: /Rough seas/ })).toBeChecked();
+});

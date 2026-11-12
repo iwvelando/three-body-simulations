@@ -1,3 +1,4 @@
+import { placeOf } from "../../shell/address";
 import { references } from "./references";
 import type { Catalog, PaintingCatalog } from "./types";
 
@@ -15,7 +16,7 @@ export function Science({
   return (
     <main className="page science">
       <p className="back">
-        <a href="#/flat">Back to the simulation</a>
+        <a href={placeOf("flat")}>Back to the simulation</a>
       </p>
       <h1>The scene and what is invented</h1>
 

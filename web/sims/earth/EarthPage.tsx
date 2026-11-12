@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { setAddress } from "../../shell/address";
+import { setPlace } from "../../shell/address";
 import { EngineError } from "../../shell/engine";
 import { useLatest } from "../../shell/useLatest";
 import type { SimulationProps } from "../../shell/registry";
@@ -112,7 +112,7 @@ function Simulation({
     const hash = isDefault(study, catalog)
       ? "#/earth"
       : `#/earth?c=${encode(study)}`;
-    setAddress(hash);
+    setPlace("earth", hash);
     setCopied(false);
   }, [study, catalog]);
 
