@@ -273,3 +273,37 @@ func TestErrorsNameTheField(t *testing.T) {
 		}
 	}
 }
+
+// The picture is as wide as what is left standing only moments into a
+// fall, far inside the first of the evenly spaced frames, so the run up
+// to that moment has frames of its own. They start at first touch with
+// nothing flat and end at the crossing with the two widths equal.
+func TestEarlyFramesRunUpToTheCrossing(t *testing.T) {
+	for _, p := range Catalog().Presets {
+		for _, b := range Catalog().Bodies {
+			r := mustRun(t, Request{Body: b.ID, Preset: p.ID})
+			e := r.Early
+			n := len(e.Time)
+			if n < 8 || len(e.Rim) != n || len(e.Sink) != n || len(e.Foot) != n || len(e.Bands) != n {
+				t.Fatalf("%s %s: %d early frames", p.ID, b.ID, n)
+			}
+			if e.Time[0] != 0 || e.Rim[0] != 0 {
+				t.Errorf("%s %s: starts at %g s with a rim of %g", p.ID, b.ID, e.Time[0], e.Rim[0])
+			}
+			near(t, p.ID+" "+b.ID+" last time", e.Time[n-1], r.Crossing, 1e-9)
+			standing := b.Radius
+			if e.Sink[n-1] >= 0 {
+				standing = e.Foot[n-1]
+			}
+			near(t, p.ID+" "+b.ID+" rim at the crossing", e.Rim[n-1], standing, 1e-6)
+			for i := 1; i < n; i++ {
+				if e.Time[i] <= e.Time[i-1] || e.Rim[i] < e.Rim[i-1] {
+					t.Fatalf("%s %s: early frame %d goes backwards", p.ID, b.ID, i)
+				}
+				if len(e.Bands[i]) != len(r.Frames.Bands[0]) {
+					t.Fatalf("%s %s: early frame %d has %d bands", p.ID, b.ID, i, len(e.Bands[i]))
+				}
+			}
+		}
+	}
+}

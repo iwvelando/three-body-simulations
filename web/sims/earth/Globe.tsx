@@ -212,6 +212,11 @@ export function Globe({ look, label }: { look: Look; label: string }) {
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
     canvas.addEventListener("pointercancel", up);
+    // A browser may take the drawing surface away, as phones do with a
+    // page left in the background. The renderer rebuilds itself when it
+    // comes back; a globe standing still must then be drawn again.
+    const restored = () => (stale = true);
+    canvas.addEventListener("webglcontextrestored", restored);
 
     let frame = 0,
       frames = 0,

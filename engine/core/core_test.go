@@ -77,3 +77,56 @@ func TestCheckCatchesDescriptorMistakes(t *testing.T) {
 		t.Error("preset outside range accepted")
 	}
 }
+
+// A request wrong in several places is refused for the same one every
+// time: slots, then parameters, each in the catalog's order, then keys
+// the catalog does not know, by name.
+func TestResolveRefusesTheSameFieldEveryTime(t *testing.T) {
+	c := &Catalog{
+		Slots: []Slot{
+			{ID: "s1", Label: "One", Help: "h", Models: []Model{{ID: "a", Label: "A", Summary: "s", Citation: "c", Params: []string{"x", "y", "z"}}}},
+			{ID: "s2", Label: "Two", Help: "h", Models: []Model{{ID: "a", Label: "A", Summary: "s", Citation: "c"}}},
+		},
+		Params: []Param{
+			{ID: "x", Label: "X", Min: 1, Max: 10, Default: 2, Help: "h", When: Always},
+			{ID: "y", Label: "Y", Min: 1, Max: 10, Default: 2, Help: "h", When: Always},
+			{ID: "z", Label: "Z", Min: 1, Max: 10, Default: 2, Help: "h", When: Always},
+		},
+	}
+	if err := c.Check(); err != nil {
+		t.Fatal(err)
+	}
+	field := func(models map[string]string, params map[string]float64) string {
+		t.Helper()
+		_, err := c.Resolve("", models, params)
+		var fe *FieldError
+		if !errors.As(err, &fe) {
+			t.Fatalf("no refusal: %v", err)
+		}
+		return fe.Field
+	}
+	for i := 0; i < 200; i++ {
+		if got := field(map[string]string{"s2": "no", "s1": "no"}, map[string]float64{"x": 99}); got != "models.s1" {
+			t.Fatalf("slots: %s", got)
+		}
+		if got := field(nil, map[string]float64{"z": 99, "y": 99, "x": 99}); got != "params.x" {
+			t.Fatalf("parameters: %s", got)
+		}
+		if got := field(nil, map[string]float64{"q": 1, "b": 1, "m": 1}); got != "params.b" {
+			t.Fatalf("unknown parameters: %s", got)
+		}
+		if got := field(map[string]string{"q": "a", "b": "a"}, nil); got != "models.b" {
+			t.Fatalf("unknown slots: %s", got)
+		}
+	}
+}
+
+// A parameter that counts things says so, and starts on a whole number.
+func TestWholeParametersMustStartWhole(t *testing.T) {
+	c := sample()
+	c.Params[0].Whole = true
+	c.Params[0].Default = 2.5
+	if c.Check() == nil {
+		t.Fatal("a whole parameter with a fractional default passed")
+	}
+}

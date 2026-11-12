@@ -8,6 +8,10 @@ export type SimulationProps = {
   engine: Engine;
   // The part of the address after "#/<id>", such as "/models" or "?c=…".
   rest: string;
+  // Counts the visitor's arrivals at an address. A view that reads the
+  // address once is keyed by it, so a link followed, pasted or gone back
+  // to is read afresh, and the view's own rewriting of the address is not.
+  arrival: number;
 };
 export type Simulation = {
   id: string;

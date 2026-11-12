@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { setAddress } from "../../shell/address";
 import { EngineError } from "../../shell/engine";
 import { useLatest } from "../../shell/useLatest";
 import type { SimulationProps } from "../../shell/registry";
@@ -41,7 +42,7 @@ const linkOf = (rest: string) => {
   }
 };
 
-export default function EarthPage({ engine, rest }: SimulationProps) {
+export default function EarthPage({ engine, rest, arrival }: SimulationProps) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [failure, setFailure] = useState("");
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function EarthPage({ engine, rest }: SimulationProps) {
   }, [engine]);
   if (rest.startsWith("/chance")) return <Chance engine={engine} />;
   if (rest.startsWith("/surface"))
-    return <Surface engine={engine} rest={rest} />;
+    return <Surface key={arrival} engine={engine} rest={rest} />;
   if (failure)
     return (
       <main className="page notice-page">
@@ -65,14 +66,18 @@ export default function EarthPage({ engine, rest }: SimulationProps) {
     );
   if (!catalog) return <main className="page" aria-busy="true" />;
   if (rest.startsWith("/science")) return <Science catalog={catalog} />;
-  return <Simulation engine={engine} catalog={catalog} rest={rest} />;
+  // The address is read once, on arrival; keyed by the arrival, a link
+  // followed or pasted while the planet is open is read too.
+  return (
+    <Simulation key={arrival} engine={engine} catalog={catalog} rest={rest} />
+  );
 }
 
 function Simulation({
   engine,
   catalog,
   rest,
-}: SimulationProps & { catalog: Catalog }) {
+}: Omit<SimulationProps, "arrival"> & { catalog: Catalog }) {
   // The address is read once, on arrival.
   const [arrival] = useState(() => {
     const text = linkOf(rest);
@@ -107,7 +112,7 @@ function Simulation({
     const hash = isDefault(study, catalog)
       ? "#/earth"
       : `#/earth?c=${encode(study)}`;
-    if (location.hash !== hash) history.replaceState(null, "", hash);
+    setAddress(hash);
     setCopied(false);
   }, [study, catalog]);
 
@@ -200,7 +205,10 @@ function Simulation({
         <div className={`globes${wide ? " two" : ""}`}>
           {(wide ? [pair!.living, pair!.lifeless] : [shown]).map((r) => (
             <figure
-              key={String(r.life)}
+              // Side by side each Earth keeps its own globe. Alone, the one
+              // globe stays as Life is checked and unchecked, and only
+              // what it shows changes.
+              key={wide ? String(r.life) : "chosen"}
               className={r === shown ? "chosen" : undefined}
             >
               <Globe

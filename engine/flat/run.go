@@ -71,8 +71,11 @@ type Result struct {
 	Grain float64 `json:"grain"`
 	Bands []Band  `json:"bands"`
 	// Person is how wide a person (0.07 m³) would be, in km.
-	Person float64  `json:"person"`
-	Frames Frames   `json:"frames"`
+	Person float64 `json:"person"`
+	Frames Frames  `json:"frames"`
+	// Early are moments evenly spaced from first touch to the crossing,
+	// which comes too soon for Frames to show: often inside the first.
+	Early  Frames   `json:"early"`
 	Choice Resolved `json:"choice"`
 }
 
@@ -135,7 +138,15 @@ func sum(v []float64) float64 {
 func (f fall) swallowed(r, z float64) float64 {
 	total, inner := 0.0, 0.0
 	whole := func(s float64) float64 { return 4 * math.Pi * s * s * s / 3 }
-	part := func(s float64) float64 { return 2 * math.Pi * (z*s*s/2 + s*s*s/3) }
+	// The caps of the shells from radius a out to b, all of them cut by
+	// the plane: the integral of 2πs(z + s). Written so that nothing
+	// large is taken from anything large: at first touch the answer is a
+	// sliver, and on a sheet an atom thick a rounding error in it would
+	// be a picture millions of kilometers wide.
+	caps := func(a, b float64) float64 {
+		d := b - a
+		return 2 * math.Pi * d * ((z+a)*(a+b)/2 + (2*b+a)*d/6)
+	}
 	for i, l := range f.body.Layers {
 		lo, hi := inner, math.Min(l.Outer, r)
 		inner = l.Outer
@@ -147,7 +158,7 @@ func (f fall) swallowed(r, z float64) float64 {
 		if z > 0 {
 			total += f.weight[i] * (whole(edge) - whole(lo))
 		}
-		total += f.weight[i] * (part(hi) - part(edge))
+		total += f.weight[i] * caps(edge, hi)
 	}
 	// Rounding can leave a hair less than nothing.
 	return math.Max(0, total)
@@ -167,6 +178,9 @@ func (f fall) rim(z float64) float64 {
 }
 
 const slices = 48
+
+// earlySteps is how many moments lead up to the crossing.
+const earlySteps = 24
 
 // bands gives the outer edge of every band with the plane at height z.
 func (f fall) bands(z float64) []float64 {
@@ -266,17 +280,27 @@ func Run(q Request) (*Result, error) {
 		inner = edge
 	}
 
+	moment := func(into *Frames, z float64) {
+		into.Time = append(into.Time, (z+r)/f.speed)
+		into.Sink = append(into.Sink, z)
+		into.Foot = append(into.Foot, f.foot(z))
+		edges := f.bands(z)
+		into.Bands = append(into.Bands, edges)
+		into.Rim = append(into.Rim, edges[len(edges)-1])
+	}
 	for i := 0; i <= steps; i++ {
 		z := -r + 2*r*float64(i)/float64(steps)
 		if i == steps {
 			z = r
 		}
-		out.Frames.Time = append(out.Frames.Time, out.Duration*float64(i)/float64(steps))
-		out.Frames.Sink = append(out.Frames.Sink, z)
-		out.Frames.Foot = append(out.Frames.Foot, f.foot(z))
-		edges := f.bands(z)
-		out.Frames.Bands = append(out.Frames.Bands, edges)
-		out.Frames.Rim = append(out.Frames.Rim, edges[len(edges)-1])
+		moment(&out.Frames, z)
+	}
+	for i := 0; i <= earlySteps; i++ {
+		z := -r + (hi+r)*float64(i)/earlySteps
+		if i == earlySteps {
+			z = hi
+		}
+		moment(&out.Early, z)
 	}
 	return out, nil
 }

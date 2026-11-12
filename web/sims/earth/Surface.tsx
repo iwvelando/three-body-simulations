@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLatest } from "../../shell/useLatest";
 import type { Engine } from "../../shell/engine";
 import { EngineError } from "../../shell/engine";
+import { Slider } from "../../shell/Slider";
 import { number } from "./format";
 import { Terrain } from "./Terrain";
 import type { Param } from "./types";
@@ -210,37 +211,19 @@ export function Surface({ engine, rest }: { engine: Engine; rest: string }) {
     setup.params[id] ??
     scene.defaults[id] ??
     descriptor.params.find((p) => p.id === id)!.default;
-  const slider = (spec: Param) => {
-    const to = (v: number) => (spec.log ? Math.log10(v) : v);
-    const from = (v: number) =>
-      Math.min(spec.max, Math.max(spec.min, spec.log ? 10 ** v : v));
-    return (
-      <div className="field" key={spec.id}>
-        <div className="field-head">
-          <span className="field-label">{spec.label}</span>
-          <output>
-            {number(value(spec.id))}
-            {spec.unit ? ` ${spec.unit}` : ""}
-          </output>
-        </div>
-        <input
-          type="range"
-          aria-label={spec.label}
-          min={to(spec.min)}
-          max={to(spec.max)}
-          step={(to(spec.max) - to(spec.min)) / 200}
-          value={to(value(spec.id))}
-          onChange={(e) =>
-            setSetup((s) => ({
-              ...s!,
-              params: { ...s!.params, [spec.id]: from(Number(e.target.value)) },
-            }))
-          }
-        />
-        <p className="hint">{spec.help}</p>
-      </div>
-    );
-  };
+  // A scene starts some settings elsewhere than the catalog does, and a
+  // slider comes back to where its scene started it.
+  const slider = (spec: Param) => (
+    <Slider
+      key={spec.id}
+      spec={{ ...spec, default: scene.defaults[spec.id] ?? spec.default }}
+      value={value(spec.id)}
+      disabled={false}
+      onChange={(v) =>
+        setSetup((s) => ({ ...s!, params: { ...s!.params, [spec.id]: v } }))
+      }
+    />
+  );
 
   const mountains = run?.peaks && run.scene === "mountains";
   return (
@@ -337,6 +320,7 @@ export function Surface({ engine, rest }: { engine: Engine; rest: string }) {
                         at={mix(run.times)}
                         lines={[
                           { name: "a", kind: "living", values: run.peaks![0] },
+                          { name: "b", kind: "living", values: run.peaks![1] },
                           {
                             name: "bare",
                             kind: "lifeless",

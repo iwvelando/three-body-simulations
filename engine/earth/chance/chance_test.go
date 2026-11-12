@@ -206,3 +206,13 @@ func TestSamplesDescribeThePlanets(t *testing.T) {
 		}
 	}
 }
+
+// The number of feedback points is a count, and the catalog says so, so
+// its control never shows a fraction the engine would round away.
+func TestFeedbackPointsAreAWholeNumber(t *testing.T) {
+	for _, p := range Catalog().Params {
+		if p.ID == "nodes" && !p.Whole {
+			t.Fatal("nodes is not marked whole")
+		}
+	}
+}

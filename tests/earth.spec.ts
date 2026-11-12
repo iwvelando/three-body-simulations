@@ -338,3 +338,191 @@ test("a still globe is not redrawn", async ({ page }) => {
   await slide(page.getByRole("slider", { name: "Time" }), 200);
   await expect.poll(frames).toBeGreaterThan(settled);
 });
+
+// A touch swipe that starts on an element, the way a visitor scrolls a
+// page. Chromium only: the gesture is synthesized through its debugger.
+async function swipeUpFrom(
+  page: Page,
+  target: import("@playwright/test").Locator,
+) {
+  await target.scrollIntoViewIfNeeded();
+  const box = (await target.boundingBox())!;
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.synthesizeScrollGesture", {
+    x: Math.round(box.x + box.width * 0.4),
+    y: Math.round(box.y + box.height / 2),
+    yDistance: -250,
+    gestureSourceType: "touch",
+    speed: 600,
+  });
+}
+
+test("a link pasted while the planet is open is read", async ({ page }) => {
+  await open(page);
+  await expect(verdict(page)).toContainText("Lifeless Earth today: dry");
+  await page.evaluate(() => {
+    // Life checked, starting from Skeptic.
+    location.hash = `#/earth?c=${btoa(JSON.stringify({ v: 1, l: 1, b: "skeptic" })).replace(/=+$/, "")}`;
+  });
+  await expect(verdict(page)).toContainText("Living Earth today");
+  await panel(page);
+  await expect(page.getByRole("radio", { name: /Skeptic/ })).toBeChecked();
+});
+
+test("a page opened from the bottom of another starts at its top, with focus on it", async ({
+  page,
+}) => {
+  await open(page);
+  await panel(page);
+  await page.getByText("Models", { exact: true }).click();
+  const link = page.getByRole("link", { name: "Where they come from" });
+  await link.scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => scrollY)).toBeGreaterThan(300);
+  await link.click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: /science/i }),
+  ).toBeVisible();
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+  expect(
+    await page.evaluate(() => document.activeElement?.className ?? ""),
+  ).toContain("view");
+});
+
+test("a simulation opened by its address never shows the home page first", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    (window as any).__home = false;
+    const look = () => {
+      if (document.body?.innerText.includes("Before you go on"))
+        (window as any).__home = true;
+      requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  });
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__home)).toBe(false);
+});
+
+test("water is always read to the same two places, and a trace is called a trace", async ({
+  page,
+}) => {
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const time = page.getByRole("slider", { name: "Time" });
+  const last = Number(await time.getAttribute("max"));
+  const seen = new Set<string>();
+  for (let i = 0; i <= last; i++) {
+    await slide(time, i);
+    const text = await page.getByTestId("moment").innerText();
+    const water = /Water\s+(.+)/.exec(text);
+    if (water) seen.add(water[1].trim());
+  }
+  expect(seen.size).toBeGreaterThan(20);
+  for (const reading of seen)
+    expect(reading).toMatch(/^(none|less than 0\.01 oceans|\d+\.\d\d oceans)$/);
+});
+
+test("a slider put back beside its starting value lands on it", async ({
+  page,
+}) => {
+  await open(page);
+  await panel(page);
+  const radio = page.getByRole("radio", { name: /Green Glasses/ });
+  const distance = page.getByRole("slider", { name: "Distance from the Sun" });
+  const readout = page
+    .locator(".field", { hasText: "Distance from the Sun" })
+    .locator("output");
+  await expect(radio).toBeChecked();
+  await slide(distance, 1.05);
+  await expect(radio).not.toBeChecked();
+  await expect(readout).toHaveText("1.05 AU");
+  // The nearest stop a drag can reach is not exactly 1 AU. It counts as
+  // 1 AU, and the planet is the starting point's again.
+  await slide(distance, 1.0005);
+  await expect(readout).toHaveText("1 AU");
+  await expect(radio).toBeChecked();
+  await expect(page).toHaveURL(/#\/earth$/);
+});
+
+test("a drag on the globe tilts it and never scrolls the page", async ({
+  page,
+}) => {
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const globe = page.locator(".globe").first();
+  expect(await globe.evaluate((el) => getComputedStyle(el).touchAction)).toBe(
+    "none",
+  );
+  expect(
+    await globe
+      .locator("canvas")
+      .evaluate((el) => getComputedStyle(el).touchAction),
+  ).toBe("none");
+});
+
+test("on a phone, unchecking Life keeps the same globe", async ({ page }) => {
+  test.skip(page.viewportSize()!.width >= 700, "one globe at a time");
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  await page
+    .locator(".globe canvas")
+    .evaluate((el) => ((el as any).__kept = true));
+  await panel(page);
+  await page.getByRole("checkbox", { name: "Life" }).check();
+  await expect(verdict(page)).toContainText("Living Earth");
+  expect(
+    await page.locator(".globe canvas").evaluate((el) => (el as any).__kept),
+  ).toBe(true);
+});
+
+test("the globe comes back after the browser takes its drawing surface away", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== "chromium", "needs the lose-context extension");
+  // Still, so nothing but the recovery itself would draw it again.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const globe = page.locator(".globe").first();
+  const frames = async () => Number(await globe.getAttribute("data-frames"));
+  await expect.poll(frames).toBeGreaterThan(0);
+  await page.waitForTimeout(400);
+  const before = await frames();
+  await globe.locator("canvas").evaluate(async (el) => {
+    const canvas = el as HTMLCanvasElement;
+    const gl = (canvas.getContext("webgl2") ??
+      canvas.getContext("webgl")) as WebGLRenderingContext;
+    const lose = gl.getExtension("WEBGL_lose_context")!;
+    lose.loseContext();
+    await new Promise((r) => setTimeout(r, 200));
+    lose.restoreContext();
+  });
+  await expect.poll(frames).toBeGreaterThan(before);
+});
+
+test("on a phone, scrolling past a chart leaves the time alone, and a tap on it moves there", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== "chromium" || page.viewportSize()!.width >= 700,
+    "a synthesized touch on a phone",
+  );
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const when = page.locator(".moment-when");
+  await expect(when).toHaveText("Today");
+  const chart = page.locator(".chart svg").first();
+  const before = await page.evaluate(() => scrollY);
+  await swipeUpFrom(page, chart);
+  expect(await page.evaluate(() => scrollY)).toBeGreaterThan(before + 100);
+  await page.waitForTimeout(300);
+  await expect(when).toHaveText("Today");
+  await chart.scrollIntoViewIfNeeded();
+  const box = (await chart.boundingBox())!;
+  await page.touchscreen.tap(box.x + box.width * 0.4, box.y + box.height / 2);
+  await expect(when).toContainText("billion years ago");
+});

@@ -64,6 +64,7 @@ Reiter 2005, as the paper states it: a hexagonal lattice of real values; a cell 
 - The rectangle's field against a direct sum over its area; the line's field near and far; a strip between two paths gains its width in area per unit fed, out to a million units.
 - A picture's area is its volume over h; edge first it spans 2√(area/π); the buried stretch and dilution against hand-worked values.
 - Identical requests give identical replies; coarse and fine frames agree; errors name the field.
+- The early frames start at first touch with nothing flat and end at the crossing with the picture exactly as wide as what stands, for every preset and body. This holds on the one-atom sheet only because the cap volume is computed without cancellation.
 
 ## How it came out
 

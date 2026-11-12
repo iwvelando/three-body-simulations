@@ -288,7 +288,7 @@ var descriptor = &Descriptor{
 		{ID: "years", Label: "Time to last", Unit: "billion years", Min: 0.5, Max: 4, Default: 3, Help: "How long a planet must stay habitable to count.", When: core.Always, Basic: true},
 		{ID: "feedback", Label: "Feedback strength", Unit: "°C per thousand years", Min: 10, Max: 300, Default: 100, Log: true, Help: "Typical size of a planet's random warming and cooling tendencies.", When: core.Always},
 		{ID: "forcing", Label: "Long-term drift", Unit: "°C per thousand years, per billion years", Min: 0, Max: 150, Default: 50, Help: "Typical size of the slow push from a brightening star and the like.", When: core.Always},
-		{ID: "nodes", Label: "Most feedback points", Unit: "", Min: 2, Max: 40, Default: 20, Help: "The most points at which a planet's tendencies are drawn. More makes for a more intricate climate.", When: core.Always},
+		{ID: "nodes", Label: "Most feedback points", Unit: "", Min: 2, Max: 40, Default: 20, Help: "The most points at which a planet's tendencies are drawn. More makes for a more intricate climate.", When: core.Always, Whole: true},
 	},
 	Speculative: []string{"life", "comfort"},
 	Citation:    "Tyrrell 2020, Communications Earth & Environment 1, 61",

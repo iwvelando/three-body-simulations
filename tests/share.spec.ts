@@ -18,6 +18,9 @@ test("@smoke link previews reuse the page's own words and a full-size card", asy
 }) => {
   await page.goto("/");
   const title = await page.title();
+  // The site's own name: it holds several simulations, and naming one
+  // would give a scene away to whoever is sent the link.
+  expect(title).toBe("Three-Body Simulations");
   const description = await page
     .locator('meta[name="description"]')
     .getAttribute("content");
