@@ -57,7 +57,7 @@ export function Calendar({
     const share =
       (((clientX - box.left) / box.width) * W - left) / (W - left - right);
     onTime(Math.min(run.span, Math.max(0, share * run.span)));
-  }, false);
+  });
   const stable = run.eras.filter((e) => e.kind === "stable");
   return (
     <section className="calendar" aria-labelledby="calendar-title">

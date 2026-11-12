@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Engine, EngineError } from "../../shell/engine";
+import { placeOf } from "../../shell/address";
 import { scale } from "../../shell/catalog";
 import { useDark } from "../../shell/Theme";
 import { number } from "./format";
@@ -270,7 +271,7 @@ export function Chance({ engine }: { engine: Engine }) {
   return (
     <main className="page chance">
       <p className="back">
-        <a href="#/earth">Back to the planet</a>
+        <a href={placeOf("earth")}>Back to the planet</a>
       </p>
       <h1>Was it luck?</h1>
       <p className="lede">
@@ -394,9 +395,16 @@ export function Chance({ engine }: { engine: Engine }) {
                 Stop
               </button>
             ) : (
-              <button type="button" onClick={() => setSetup((s) => ({ ...s }))}>
-                Run again
-              </button>
+              // The same planets meet the same accidents every time, so
+              // only a run that was cut short has anything left to show.
+              tally?.state === "stopped" && (
+                <button
+                  type="button"
+                  onClick={() => setSetup((s) => ({ ...s }))}
+                >
+                  Run again
+                </button>
+              )
             )}
             <button
               type="button"

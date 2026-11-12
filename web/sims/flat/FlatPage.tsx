@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EngineError } from "../../shell/engine";
 import type { SimulationProps } from "../../shell/registry";
-import { edited, resolve, type Study } from "../../shell/study";
+import { resolve, type Study } from "../../shell/study";
 import { useLatest } from "../../shell/useLatest";
 import { afterglow, Fall, momentOf } from "./Fall";
 import { bare, duration, figure, length, named } from "./format";
@@ -471,13 +471,13 @@ function BodyView({
                 <a href="#/flat/science">What is invented</a>
               </>
             }
-            onStudy={(update) => {
-              // Choosing a starting point turns to the body its
-              // statement in the novel is about, if it is about one.
-              const next = update(study);
-              const about = catalog.focus[next.preset];
-              if (!edited(next) && about) setBody(about);
-              change(update);
+            onStudy={change}
+            // Choosing a starting point turns to the body its statement
+            // in the novel is about, if it is about one. Nothing else
+            // does: a slider put back where it started leaves the body.
+            onPreset={(id) => {
+              const about = catalog.focus[id];
+              if (about) setBody(about);
             }}
             onReset={() => {
               reset();

@@ -40,10 +40,9 @@ export function number(v: number): string {
   if (a >= 100) return Math.round(v).toLocaleString("en-US");
   if (a >= 10) return v.toFixed(1).replace(/\.0$/, "");
   if (a >= 1) return v.toFixed(2).replace(/\.?0+$/, "");
-  // Very small values come back in powers of ten, which have no
-  // trailing zeros to trim.
-  const text = v.toPrecision(2);
-  return text.includes("e") ? text : text.replace(/\.?0+$/, "");
+  // Very small values come back in powers of ten; the zeros to trim are
+  // then the ones before the power.
+  return v.toPrecision(3).replace(/\.?0+(e|$)/, "$1");
 }
 
 // How a slider stands for a parameter. Logarithmic parameters slide in

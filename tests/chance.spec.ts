@@ -159,3 +159,14 @@ test("a count is set and shown in whole numbers", async ({ page }) => {
   ).toHaveText("12");
   expect(await points.getAttribute("step")).toBe("1");
 });
+
+test("a finished run is not offered again, since it would come out the same", async ({
+  page,
+}) => {
+  await open(page, "#/earth/chance");
+  await done(page);
+  await expect(page.getByRole("button", { name: "Run again" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Draw new planets" }),
+  ).toBeVisible();
+});

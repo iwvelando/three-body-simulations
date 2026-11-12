@@ -119,25 +119,75 @@ function Picture({
           c.stroke();
         }
       }
+      const bar = tidy((0.3 * width) / px / AU);
       // A body too small to see at this scale is marked where it is.
+      // Each name goes beside its body where there is room: to the right
+      // or the left, then a line higher or lower, joined to its body by
+      // a thin line once it has had to move. Near the Sun several bodies
+      // share a few dots of the picture, and their names must not.
       c.font = "12px 'IBM Plex Sans', system-ui, sans-serif";
+      c.textBaseline = "middle";
+      const tall = 14;
+      type Box = [number, number, number, number];
+      const taken: Box[] = [[14, height - 36, bar * AU * px, 26]];
+      const names: [string, ...Box][] = [];
+      const clear = ([x, y, w, h]: Box) =>
+        x >= 2 &&
+        y >= 2 &&
+        x + w <= width - 2 &&
+        y + h <= height - 2 &&
+        taken.every(
+          ([tx, ty, tw, th]) =>
+            x + w + 3 <= tx || tx + tw + 3 <= x || y + h <= ty || ty + th <= y,
+        );
       for (const b of order) {
         const [x, y, r] = where(b);
-        if (x < -20 || y < -20 || x > width + 20 || y > height + 20) continue;
+        if (x < 0 || y < 0 || x > width || y > height) continue;
         if (r < 0.75) {
           c.fillStyle = b.body.layers[b.body.layers.length - 1].color;
           c.beginPath();
           c.arc(x, y, 1.5, 0, 2 * Math.PI);
           c.fill();
         }
+        const name = b.body.label.replace(/^The /, "");
+        const wide = c.measureText(name).width;
+        const off = Math.min(r, 40) * 0.7 + 5;
+        let box: Box | null = null,
+          moved = false;
+        find: for (let k = 0; k <= 16; k++) {
+          // 0, one line up, one down, two up, two down and so on.
+          const line = (k % 2 ? -1 : 1) * Math.ceil(k / 2);
+          for (const lx of [x + off, x - off - wide]) {
+            const tried: Box = [lx, y - 16 + line * tall, wide, tall];
+            if (!clear(tried)) continue;
+            box = tried;
+            moved = k > 0;
+            break find;
+          }
+        }
+        if (!box) continue;
+        taken.push(box);
+        names.push([name, ...box]);
+        const [lx, ly] = box;
+        if (moved) {
+          c.strokeStyle = "rgba(236,241,250,0.45)";
+          c.lineWidth = 1;
+          c.beginPath();
+          c.moveTo(x, y);
+          c.lineTo(lx < x ? lx + wide + 2 : lx - 2, ly + tall / 2);
+          c.stroke();
+        }
         c.fillStyle = "rgba(236,241,250,0.92)";
         c.strokeStyle = "rgba(8,18,38,0.8)";
         c.lineWidth = 3;
-        const name = b.body.label.replace(/^The /, "");
-        c.strokeText(name, x + Math.min(r, 40) * 0.7 + 5, y - 5);
-        c.fillText(name, x + Math.min(r, 40) * 0.7 + 5, y - 5);
+        c.strokeText(name, lx, ly + tall / 2);
+        c.fillText(name, lx, ly + tall / 2);
       }
-      const bar = tidy((0.3 * width) / px / AU);
+      c.textBaseline = "alphabetic";
+      // Where each name went, for anything that cannot see them.
+      c.canvas.dataset.labels = JSON.stringify(
+        names.map(([name, ...box]) => [name, ...box.map(Math.round)]),
+      );
       c.strokeStyle = c.fillStyle = "rgba(236,241,250,0.9)";
       c.lineWidth = 1;
       c.beginPath();

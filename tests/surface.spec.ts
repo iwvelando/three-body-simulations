@@ -276,3 +276,18 @@ test("the summit chart draws both mountains under vegetation and the bare one", 
   await expect(page.locator(".chart path.series.living")).toHaveCount(2);
   await expect(page.locator(".chart path.series.lifeless")).toHaveCount(1);
 });
+
+test("the address follows the scene and its settings, and a reload restores them", async ({
+  page,
+}) => {
+  await open(page, "#/earth/surface?scene=crater&cover=0.00&rain=0.00");
+  await page.getByRole("radio", { name: "Three mountains" }).check();
+  await expect(page).toHaveURL(/#\/earth\/surface\?scene=mountains$/);
+  await slide(page.getByRole("slider", { name: "Rain" }), 1.5);
+  await expect(page).toHaveURL(/scene=mountains&rain=1\.5$/);
+  await page.reload();
+  await expect(
+    page.getByRole("radio", { name: "Three mountains" }),
+  ).toBeChecked();
+  await expect(page.getByRole("slider", { name: "Rain" })).toHaveValue("1.5");
+});

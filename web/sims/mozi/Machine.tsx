@@ -448,6 +448,10 @@ export function Machine({
   current.current = { view, layers };
   const stale = useRef(true);
   const [flat, setFlat] = useState(false);
+  // The small holes are the same in every machine, though each run brings
+  // its own copy of the list. The machine is built once, from the first,
+  // so a change of settings never rebuilds it or loses how it was turned.
+  const holes = useRef(stars);
 
   useEffect(() => {
     stale.current = true;
@@ -457,7 +461,7 @@ export function Machine({
     const element = host.current!;
     let stage: Stage;
     try {
-      stage = build(stars);
+      stage = build(holes.current);
     } catch {
       setFlat(true);
       return;
@@ -526,7 +530,7 @@ export function Machine({
       watcher.disconnect();
       stage.dispose();
     };
-  }, [stars]);
+  }, []);
 
   return (
     <div

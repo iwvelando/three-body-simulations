@@ -19,7 +19,9 @@ varying vec2 uv;
 uniform sampler2D picture;
 void main() { gl_FragColor = texture2D(picture, uv); }`;
 
-type Drawer = { draw: (painted: Painted, progress: number) => void };
+// `draw` says whether anything was drawn: nothing is while the browser
+// has the drawing surface.
+type Drawer = { draw: (painted: Painted, progress: number) => boolean };
 
 function start(canvas: HTMLCanvasElement): Drawer | null {
   const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
@@ -104,6 +106,7 @@ function start(canvas: HTMLCanvasElement): Drawer | null {
 
   return {
     draw(p, progress) {
+      if (gl.isContextLost()) return false;
       if (p !== held) prepare(p);
       const box = canvas.getBoundingClientRect();
       const scale = Math.min(devicePixelRatio || 1, 2);
@@ -173,6 +176,7 @@ function start(canvas: HTMLCanvasElement): Drawer | null {
         sheet(textures[1], back);
       }
       sheet(textures[0], points);
+      return true;
     },
   };
 }
@@ -211,20 +215,46 @@ export function Sheet({
   const ref = useRef<HTMLCanvasElement>(null);
   const drawer = useRef<Drawer | null>(null);
   const [plain, setPlain] = useState(false);
+  // Counts the times the drawing surface has come back.
+  const [returned, setReturned] = useState(0);
   useEffect(() => {
-    if (!ref.current || plain) return;
-    drawer.current ??= start(ref.current);
-    if (!drawer.current) setPlain(true);
+    const canvas = ref.current;
+    if (!canvas || plain) return;
+    drawer.current ??= start(canvas);
+    if (!drawer.current) {
+      setPlain(true);
+      return;
+    }
+    // A browser may take the drawing surface away, as phones do with a
+    // page left in the background. It gives one back only if asked to,
+    // and everything loaded onto the old one is gone: start again and
+    // draw the picture as it stood.
+    const lost = (e: Event) => e.preventDefault();
+    const back = () => {
+      drawer.current = start(canvas);
+      setReturned((n) => n + 1);
+    };
+    canvas.addEventListener("webglcontextlost", lost);
+    canvas.addEventListener("webglcontextrestored", back);
+    return () => {
+      canvas.removeEventListener("webglcontextlost", lost);
+      canvas.removeEventListener("webglcontextrestored", back);
+    };
   }, [plain]);
+  const frames = useRef(0);
   useEffect(() => {
     if (plain) return;
-    const paint = () => drawer.current?.draw(painted, progress);
+    const paint = () => {
+      const host = ref.current?.parentElement;
+      if (drawer.current?.draw(painted, progress) && host)
+        host.dataset.frames = String(++frames.current);
+    };
     paint();
     if (!ref.current) return;
     const watch = new ResizeObserver(paint);
     watch.observe(ref.current);
     return () => watch.disconnect();
-  }, [painted, progress, plain]);
+  }, [painted, progress, plain, returned]);
   // Without WebGL there is no fall to watch, only how it ends.
   const flat = useRef<HTMLCanvasElement>(null);
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { setAddress } from "../../shell/address";
+import { setPlace } from "../../shell/address";
 import { EngineError } from "../../shell/engine";
 import { number } from "../../shell/catalog";
 import { useLatest } from "../../shell/useLatest";
@@ -134,7 +134,7 @@ function Simulation({
     const hash = isDefault(study, catalog)
       ? "#/mozi"
       : `#/mozi?c=${encode(study)}`;
-    setAddress(hash);
+    setPlace("mozi", hash);
     setCopied(false);
   }, [study, catalog]);
 
@@ -289,7 +289,7 @@ function Simulation({
             <Sky
               view={view}
               stars={run.stars}
-              label={`The clerk's sky on day ${dayOf(at)}: ${sunLine}`}
+              label={`The clerk's sky on day ${dayOf(at, run.span)}: ${sunLine}`}
             />
             <figcaption>
               <strong>The clerk's sky</strong>
@@ -301,7 +301,7 @@ function Simulation({
               view={view}
               stars={run.stars}
               layers={layers}
-              label={`The machine cut open on day ${dayOf(at)}: ${
+              label={`The machine cut open on day ${dayOf(at, run.span)}: ${
                 two ? "two shells" : "one sphere"
               }, with the large hole ${up > 0 ? "above" : "below"} the clerk's floor`}
             />
@@ -331,7 +331,7 @@ function Simulation({
           })}
         </fieldset>
         <div className="moment" data-testid="moment">
-          <p className="moment-when">{dayLabel(at)}</p>
+          <p className="moment-when">{dayLabel(at, run.span)}</p>
           <dl>
             <div>
               <dt>Sun</dt>
@@ -364,7 +364,7 @@ function Simulation({
             time={Math.min(time, run.span)}
             playing={playing}
             docked={docked}
-            label={dayLabel(at)}
+            label={dayLabel(at, run.span)}
             speed={speed}
             onTime={move}
             onPlaying={play}

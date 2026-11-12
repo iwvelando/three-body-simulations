@@ -102,6 +102,11 @@ button {
   padding: 0.4rem 0.8rem;
   min-height: 2.5rem;
 }
+button:disabled {
+  cursor: default;
+  color: var(--muted);
+  opacity: 0.6;
+}
 button[aria-pressed="true"] {
   background: var(--ink);
   color: var(--paper);

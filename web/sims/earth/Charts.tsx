@@ -136,7 +136,7 @@ function Chart({
     const px = ((clientX - box.left) / box.width) * W;
     const t = from + ((px - left) / (W - left - right)) * (ageNow - from);
     onAge(Math.min(ageNow, Math.max(from, t)));
-  }, true);
+  });
   const cursor = drawn.x(Math.max(age, from));
   return (
     <figure className="chart">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { placeOf, setAddress } from "../../shell/address";
 import { useLatest } from "../../shell/useLatest";
 import type { Engine } from "../../shell/engine";
 import { EngineError } from "../../shell/engine";
@@ -42,6 +43,19 @@ function arrive(rest: string, d: Descriptor): Setup {
       params[spec.id] = value;
   }
   return { scene: scene.id, params };
+}
+// The same the other way: what `arrive` would read back as this setup.
+function addressOf(setup: Setup, d: Descriptor): string {
+  const query = new URLSearchParams();
+  if (setup.scene !== d.scenes[1].id) query.set("scene", setup.scene);
+  for (const spec of d.params) {
+    const value = setup.params[spec.id];
+    // Short enough to read; a slider's stops carry no more than this.
+    if (value !== undefined)
+      query.set(spec.id, String(Number(value.toPrecision(6))));
+  }
+  const tail = query.toString();
+  return tail ? `#/earth/surface?${tail}` : "#/earth/surface";
 }
 
 const meters = (v: number) => `${Math.round(v).toLocaleString("en-US")} m`;
@@ -132,6 +146,11 @@ export function Surface({ engine, rest }: { engine: Engine; rest: string }) {
     };
     // The address is read once, on arrival.
   }, [engine]);
+
+  // Keep the address in step, without adding history entries.
+  useEffect(() => {
+    if (descriptor && setup) setAddress(addressOf(setup, descriptor));
+  }, [descriptor, setup]);
 
   const ask = useCallback(
     (q: Setup) => engine.ask<Run>({ sim: "earth", action: "terrain", ...q }),
@@ -229,7 +248,7 @@ export function Surface({ engine, rest }: { engine: Engine; rest: string }) {
   return (
     <main className="page surface">
       <p className="back">
-        <a href="#/earth">Back to the planet</a>
+        <a href={placeOf("earth")}>Back to the planet</a>
       </p>
       <h1>The surface up close</h1>
       <p className="lede">

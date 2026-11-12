@@ -1,3 +1,4 @@
+import { placeOf } from "../../shell/address";
 import { refNumber, references } from "./references";
 import type { Catalog } from "./types";
 
@@ -22,7 +23,7 @@ export function Science({ catalog }: { catalog: Catalog }) {
   return (
     <main className="page science">
       <p className="back">
-        <a href="#/earth">Back to the simulation</a>
+        <a href={placeOf("earth")}>Back to the simulation</a>
       </p>
       <h1>The science and its sources</h1>
 
