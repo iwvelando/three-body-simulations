@@ -63,6 +63,9 @@ assert.equal(
 const fall = ask({ sim: "flat", action: "run", body: "earth" });
 assert.equal(fall.rings.at(-1).layer, "ocean");
 assert.equal(fall.frames.rim.length, fall.frames.time.length);
+// The run up to the crossing has frames of its own, from nothing flat.
+assert.equal(fall.early.rim[0], 0);
+assert.ok(Math.abs(fall.early.time.at(-1) / fall.crossing - 1) < 1e-9);
 // Rounding differs between processors and WebAssembly; no body's fall
 // may come back without a number on any of them.
 for (const body of ask({ sim: "flat", action: "catalog" }).bodies)

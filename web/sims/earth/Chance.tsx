@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Engine, EngineError } from "../../shell/engine";
+import { scale } from "../../shell/catalog";
 import { useDark } from "../../shell/Theme";
 import { number } from "./format";
 import type { Param } from "./types";
@@ -230,9 +231,7 @@ export function Chance({ engine }: { engine: Engine }) {
   const value = (id: string) =>
     setup.params[id] ?? descriptor.params.find((p) => p.id === id)!.default;
   const slider = (spec: Param) => {
-    const to = (v: number) => (spec.log ? Math.log10(v) : v);
-    const from = (v: number) =>
-      Math.min(spec.max, Math.max(spec.min, spec.log ? 10 ** v : v));
+    const { min, max, step, to, from } = scale(spec);
     const speculative = descriptor.speculative.includes(spec.id);
     return (
       <div className="field" key={spec.id}>
@@ -243,9 +242,9 @@ export function Chance({ engine }: { engine: Engine }) {
         <input
           type="range"
           aria-label={spec.label}
-          min={to(spec.min)}
-          max={to(spec.max)}
-          step={(to(spec.max) - to(spec.min)) / 200}
+          min={min}
+          max={max}
+          step={step}
           value={to(value(spec.id))}
           onChange={(e) =>
             setSetup((s) => ({

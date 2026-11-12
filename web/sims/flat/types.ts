@@ -51,14 +51,18 @@ export type Run = {
   grain: number;
   bands: Band[];
   person: number;
-  frames: {
-    time: number[];
-    sink: number[];
-    foot: number[];
-    rim: number[];
-    bands: number[][];
-  };
+  // Moments evenly spaced over the whole fall, and over its start up to
+  // the crossing, which comes too soon for the first to show.
+  frames: Frames;
+  early: Frames;
   choice: Choice;
+};
+export type Frames = {
+  time: number[];
+  sink: number[];
+  foot: number[];
+  rim: number[];
+  bands: number[][];
 };
 
 export type SkyBody = {

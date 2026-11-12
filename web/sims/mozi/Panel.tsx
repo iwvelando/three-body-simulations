@@ -1,4 +1,5 @@
 import { Slider } from "../../shell/Slider";
+import { startOf, withParam } from "../../shell/study";
 import { edited, resolve, type Study } from "./study";
 import type { Catalog } from "./types";
 
@@ -20,6 +21,7 @@ export function Panel({
 }) {
   const now = resolve(study, catalog);
   const spec = (id: string) => catalog.params.find((p) => p.id === id)!;
+  const start = startOf(study.preset, catalog);
   const chosen = catalog.slots.map((slot) =>
     slot.models.find((m) => m.id === now.models[slot.id])!,
   );
@@ -27,12 +29,11 @@ export function Panel({
   const slider = (id: string) => (
     <Slider
       key={id}
-      spec={spec(id)}
+      // A slider comes back to where its starting point put it.
+      spec={{ ...spec(id), default: start[id] }}
       value={now.params[id]}
       disabled={false}
-      onChange={(v) =>
-        onStudy((s) => ({ ...s, params: { ...s.params, [id]: v } }))
-      }
+      onChange={(v) => onStudy((s) => withParam(s, catalog, id, v))}
     />
   );
   return (

@@ -32,6 +32,22 @@ export function resolve(s: Study, catalog: Catalog) {
   return { models, params };
 }
 
+// The values a starting point gives every parameter, before any edit.
+export function startOf(preset: string, catalog: Catalog) {
+  return resolve({ preset, models: {}, params: {} }, catalog).params;
+}
+
+// A study with one parameter set. Put back to the value its starting
+// point gives it, the parameter is no longer an edit: the starting point
+// shows as chosen again and the link goes back to the short one.
+export function withParam<
+  S extends { preset: string; params: Record<string, number> },
+>(s: S, catalog: Catalog, id: string, value: number): S {
+  const params = { ...s.params, [id]: value };
+  if (value === startOf(s.preset, catalog)[id]) delete params[id];
+  return { ...s, params };
+}
+
 export const choice = (s: Study) => ({
   preset: s.preset,
   models: s.models,

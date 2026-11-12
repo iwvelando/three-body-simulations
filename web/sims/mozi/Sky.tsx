@@ -17,13 +17,15 @@ function paint(
   stars: Run["stars"],
   size: number,
 ) {
-  const scale = Math.min(devicePixelRatio || 1, 2);
-  if (canvas.width !== size * scale)
-    canvas.width = canvas.height = size * scale;
+  // A whole number of dots, or the canvas would be made anew, and
+  // cleared, on every frame of a screen whose ratio is not whole.
+  const dots = Math.round(size * Math.min(devicePixelRatio || 1, 2));
+  if (canvas.width !== dots) canvas.width = canvas.height = dots;
+  const scale = dots / size;
   const c = canvas.getContext("2d");
   if (!c) return;
   // The origin is the middle of the canvas, in its own pixels.
-  c.setTransform(scale, 0, 0, scale, (size * scale) / 2, (size * scale) / 2);
+  c.setTransform(scale, 0, 0, scale, dots / 2, dots / 2);
   c.clearRect(-size / 2, -size / 2, size, size);
   const radius = size / 2 - 14;
   const up = height(view.sun);

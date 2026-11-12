@@ -75,7 +75,7 @@ export function PaintingView({
   engine,
   catalog,
   rest,
-}: SimulationProps & { catalog: PaintingCatalog }) {
+}: Omit<SimulationProps, "arrival"> & { catalog: PaintingCatalog }) {
   const { study, change, reset, notice, setNotice, copied, copy } = useStudy(
     catalog,
     "#/flat/painting",
@@ -88,13 +88,23 @@ export function PaintingView({
 
   // The sample is the site's own file; a visitor's picture is read here
   // and never leaves the page.
+  // Pictures take a moment to read. Only the one asked for last is
+  // shown, so a slow sample never replaces a picture chosen since.
+  const asked = useRef(0);
   const sample = useCallback(async () => {
+    const mine = ++asked.current;
     try {
       const reply = await fetch("./starry-night.jpg");
       if (!reply.ok) throw new Error("missing");
-      setSource(await read(await reply.blob(), "The Starry Night (sample)"));
+      const picture = await read(
+        await reply.blob(),
+        "The Starry Night (sample)",
+      );
+      if (mine !== asked.current) return;
+      setSource(picture);
       setRefusal("");
     } catch {
+      if (mine !== asked.current) return;
       setRefusal("The sample picture could not be loaded. Choose your own.");
     }
   }, []);
@@ -107,10 +117,14 @@ export function PaintingView({
       setRefusal("That file is too large. Choose one under 40 MB.");
       return;
     }
+    const mine = ++asked.current;
     try {
-      setSource(await read(file, file.name));
+      const picture = await read(file, file.name);
+      if (mine !== asked.current) return;
+      setSource(picture);
       setRefusal("");
     } catch {
+      if (mine !== asked.current) return;
       setRefusal(
         "That file could not be read as a picture. Choose a PNG or a JPEG.",
       );

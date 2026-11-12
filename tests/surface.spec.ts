@@ -266,3 +266,13 @@ test("the settings do not jump when the first landscape arrives", async ({
   expect(Math.abs(after.y - before.y)).toBeLessThan(2);
   expect(Math.abs(after.x - before.x)).toBeLessThan(2);
 });
+
+test("the summit chart draws both mountains under vegetation and the bare one", async ({
+  page,
+}) => {
+  await open(page, "#/earth/surface");
+  await page.getByRole("radio", { name: "Three mountains" }).check();
+  await expect(outcome(page)).toContainText(/bare mountain/i);
+  await expect(page.locator(".chart path.series.living")).toHaveCount(2);
+  await expect(page.locator(".chart path.series.lifeless")).toHaveCount(1);
+});

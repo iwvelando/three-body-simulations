@@ -473,3 +473,78 @@ test("the three views link to one another", async ({ page }) => {
   await page.getByRole("link", { name: "A body falls" }).click();
   await expect(verdict(page)).toContainText("flat Sun");
 });
+
+test("the tab already open leads back to the view as its address has it", async ({
+  page,
+}) => {
+  await open(page);
+  const body = page.getByLabel("What falls");
+  await body.selectOption("earth");
+  await expect(page).toHaveURL(/body=earth/);
+  await page.getByRole("link", { name: "A body falls" }).click();
+  await expect(page).toHaveURL(/#\/flat$/);
+  // The address names no body, so the page shows the first.
+  await expect(body).toHaveValue("sun");
+  await expect(verdict(page)).toContainText("flat Sun");
+});
+
+test("lengths read as a person would say them", async ({ page }) => {
+  await open(page);
+  await expect(page.getByTestId("ruler")).toContainText(/1 light-year\b(?!s)/);
+  await expect(page.getByTestId("ruler")).not.toContainText("1 light-years");
+  await expect(verdict(page)).toBeVisible();
+  await panel(page);
+  await expect(
+    page
+      .locator(".field", { hasText: "Thickness of the sheet" })
+      .locator("output"),
+  ).toHaveText("192,000 m");
+});
+
+test("every starting point opens on the moment its picture is as wide as what stands", async ({
+  page,
+}) => {
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  await panel(page);
+  const widths = async () => {
+    const text = await page.getByTestId("moment").innerText();
+    return [
+      /Flat picture\s+(.+) across/.exec(text)?.[1],
+      /Still standing\s+(.+) across/.exec(text)?.[1],
+    ];
+  };
+  // Each run is told from the last by what its verdict says.
+  for (const [name, result] of [
+    [/Snowflake sea/, /flat Earth/],
+    [/Starry Night/, /flat Jupiter ends [\d.]+ AU/],
+    [/Every atom/, /light-years/],
+    [/Sun's thirty seconds/, /flat Sun/],
+  ]) {
+    await page.getByRole("radio", { name }).check();
+    await expect(verdict(page)).toContainText(result);
+    await expect
+      .poll(async () => {
+        const [flat, standing] = await widths();
+        return flat !== undefined && flat === standing;
+      })
+      .toBe(true);
+  }
+});
+
+test("a picture chosen before the sample arrives is kept", async ({ page }) => {
+  await page.route("**/starry-night.jpg", async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.continue();
+  });
+  await open(page, "#/flat/painting");
+  const png = await picture(page);
+  await page.getByLabel("Choose a picture").setInputFiles({
+    name: "mine.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(png),
+  });
+  await expect(page.getByTestId("source")).toContainText("mine.png");
+  await page.waitForTimeout(2500);
+  await expect(page.getByTestId("source")).toContainText("mine.png");
+});

@@ -31,120 +31,124 @@ function Picture({
   brushed: boolean;
   label: string;
 }) {
-  const ref = useCanvas((c, width, height) => {
-    const size = Math.min(width, height),
-      cx = width / 2,
-      cy = height / 2,
-      px = size / 2 / (reach * AU);
-    const where = (b: Sky["bodies"][number]) =>
-      [cx + b.x * px, cy - b.y * px, b.radius * px] as const;
-    c.fillStyle = "#081226";
-    c.fillRect(0, 0, width, height);
+  const ref = useCanvas(
+    (c, width, height) => {
+      const size = Math.min(width, height),
+        cx = width / 2,
+        cy = height / 2,
+        px = size / 2 / (reach * AU);
+      const where = (b: Sky["bodies"][number]) =>
+        [cx + b.x * px, cy - b.y * px, b.radius * px] as const;
+      c.fillStyle = "#081226";
+      c.fillRect(0, 0, width, height);
 
-    // Widest first, so the smaller lie on top.
-    const order = [...sky.bodies].sort((a, b) => b.radius - a.radius);
-    const disc = (b: Sky["bodies"][number], alpha: number) => {
-      const [x, y, r] = where(b);
-      for (let k = b.edges.length - 1; k >= 0; k--) {
-        c.fillStyle = css(bandColor(b.bands[k], b.body), alpha);
-        c.beginPath();
-        c.arc(x, y, Math.max(0, b.edges[k] * r), 0, 2 * Math.PI);
-        c.fill();
-      }
-    };
-    for (const b of order) if (where(b)[2] >= 0.75) disc(b, 1);
-
-    if (brushed) {
-      // Short strokes that turn around each body like water round a
-      // drain, taking the color of what lies under them.
-      const under = c.getImageData(0, 0, c.canvas.width, c.canvas.height);
-      const ratio = c.canvas.width / width;
-      const tone = (x: number, y: number) => {
-        const i =
-          4 *
-          (Math.min(under.height - 1, Math.max(0, Math.round(y * ratio))) *
-            under.width +
-            Math.min(under.width - 1, Math.max(0, Math.round(x * ratio))));
-        return [under.data[i], under.data[i + 1], under.data[i + 2]];
+      // Widest first, so the smaller lie on top.
+      const order = [...sky.bodies].sort((a, b) => b.radius - a.radius);
+      const disc = (b: Sky["bodies"][number], alpha: number) => {
+        const [x, y, r] = where(b);
+        for (let k = b.edges.length - 1; k >= 0; k--) {
+          c.fillStyle = css(bandColor(b.bands[k], b.body), alpha);
+          c.beginPath();
+          c.arc(x, y, Math.max(0, b.edges[k] * r), 0, 2 * Math.PI);
+          c.fill();
+        }
       };
-      const swirl = (x: number, y: number) => {
-        let vx = 0.35,
-          vy = 0.08;
+      for (const b of order) if (where(b)[2] >= 0.75) disc(b, 1);
+
+      if (brushed) {
+        // Short strokes that turn around each body like water round a
+        // drain, taking the color of what lies under them.
+        const under = c.getImageData(0, 0, c.canvas.width, c.canvas.height);
+        const ratio = c.canvas.width / width;
+        const tone = (x: number, y: number) => {
+          const i =
+            4 *
+            (Math.min(under.height - 1, Math.max(0, Math.round(y * ratio))) *
+              under.width +
+              Math.min(under.width - 1, Math.max(0, Math.round(x * ratio))));
+          return [under.data[i], under.data[i + 1], under.data[i + 2]];
+        };
+        const swirl = (x: number, y: number) => {
+          let vx = 0.35,
+            vy = 0.08;
+          for (const b of sky.bodies) {
+            const [bx, by, r] = where(b),
+              dx = x - bx,
+              dy = y - by,
+              d = Math.hypot(dx, dy) + 1e-6,
+              pull = Math.max(r, 10) / (d + Math.max(r, 10) * 0.4);
+            vx += (-dy / d) * pull;
+            vy += (dx / d) * pull;
+          }
+          const v = Math.hypot(vx, vy) || 1;
+          return [vx / v, vy / v];
+        };
+        const any = scatter(sky.bodies.reduce((s, b) => s + b.order * 31, 7));
+        c.lineCap = "round";
+        const strokes = Math.round((width * height) / 60);
+        for (let n = 0; n < strokes; n++) {
+          let x = any() * width,
+            y = any() * height;
+          const [r, g, b] = tone(x, y),
+            lift = 0.75 + 0.6 * any();
+          c.strokeStyle = css(
+            [r * lift + 8, g * lift + 10, b * lift + 18].map((v) =>
+              Math.min(255, v),
+            ),
+            0.85,
+          );
+          c.lineWidth = 1.2 + 2.2 * any();
+          c.beginPath();
+          c.moveTo(x, y);
+          for (let s = 0; s < 5; s++) {
+            const [vx, vy] = swirl(x, y);
+            x += vx * 3.2;
+            y += vy * 3.2;
+            c.lineTo(x, y);
+          }
+          c.stroke();
+        }
+      } else {
+        // Orbits, to show where each body stood.
+        c.strokeStyle = "rgba(200,214,240,0.16)";
+        c.lineWidth = 1;
         for (const b of sky.bodies) {
-          const [bx, by, r] = where(b),
-            dx = x - bx,
-            dy = y - by,
-            d = Math.hypot(dx, dy) + 1e-6,
-            pull = Math.max(r, 10) / (d + Math.max(r, 10) * 0.4);
-          vx += (-dy / d) * pull;
-          vy += (dx / d) * pull;
+          if (!b.body.orbit) continue;
+          c.beginPath();
+          c.arc(cx, cy, b.body.orbit * px, 0, 2 * Math.PI);
+          c.stroke();
         }
-        const v = Math.hypot(vx, vy) || 1;
-        return [vx / v, vy / v];
-      };
-      const any = scatter(sky.bodies.reduce((s, b) => s + b.order * 31, 7));
-      c.lineCap = "round";
-      const strokes = Math.round((width * height) / 60);
-      for (let n = 0; n < strokes; n++) {
-        let x = any() * width,
-          y = any() * height;
-        const [r, g, b] = tone(x, y),
-          lift = 0.75 + 0.6 * any();
-        c.strokeStyle = css(
-          [r * lift + 8, g * lift + 10, b * lift + 18].map((v) =>
-            Math.min(255, v),
-          ),
-          0.85,
-        );
-        c.lineWidth = 1.2 + 2.2 * any();
-        c.beginPath();
-        c.moveTo(x, y);
-        for (let s = 0; s < 5; s++) {
-          const [vx, vy] = swirl(x, y);
-          x += vx * 3.2;
-          y += vy * 3.2;
-          c.lineTo(x, y);
-        }
-        c.stroke();
       }
-    } else {
-      // Orbits, to show where each body stood.
-      c.strokeStyle = "rgba(200,214,240,0.16)";
+      // A body too small to see at this scale is marked where it is.
+      c.font = "12px 'IBM Plex Sans', system-ui, sans-serif";
+      for (const b of order) {
+        const [x, y, r] = where(b);
+        if (x < -20 || y < -20 || x > width + 20 || y > height + 20) continue;
+        if (r < 0.75) {
+          c.fillStyle = b.body.layers[b.body.layers.length - 1].color;
+          c.beginPath();
+          c.arc(x, y, 1.5, 0, 2 * Math.PI);
+          c.fill();
+        }
+        c.fillStyle = "rgba(236,241,250,0.92)";
+        c.strokeStyle = "rgba(8,18,38,0.8)";
+        c.lineWidth = 3;
+        const name = b.body.label.replace(/^The /, "");
+        c.strokeText(name, x + Math.min(r, 40) * 0.7 + 5, y - 5);
+        c.fillText(name, x + Math.min(r, 40) * 0.7 + 5, y - 5);
+      }
+      const bar = tidy((0.3 * width) / px / AU);
+      c.strokeStyle = c.fillStyle = "rgba(236,241,250,0.9)";
       c.lineWidth = 1;
-      for (const b of sky.bodies) {
-        if (!b.body.orbit) continue;
-        c.beginPath();
-        c.arc(cx, cy, b.body.orbit * px, 0, 2 * Math.PI);
-        c.stroke();
-      }
-    }
-    // A body too small to see at this scale is marked where it is.
-    c.font = "12px 'IBM Plex Sans', system-ui, sans-serif";
-    for (const b of order) {
-      const [x, y, r] = where(b);
-      if (x < -20 || y < -20 || x > width + 20 || y > height + 20) continue;
-      if (r < 0.75) {
-        c.fillStyle = b.body.layers[b.body.layers.length - 1].color;
-        c.beginPath();
-        c.arc(x, y, 1.5, 0, 2 * Math.PI);
-        c.fill();
-      }
-      c.fillStyle = "rgba(236,241,250,0.92)";
-      c.strokeStyle = "rgba(8,18,38,0.8)";
-      c.lineWidth = 3;
-      const name = b.body.label.replace(/^The /, "");
-      c.strokeText(name, x + Math.min(r, 40) * 0.7 + 5, y - 5);
-      c.fillText(name, x + Math.min(r, 40) * 0.7 + 5, y - 5);
-    }
-    const bar = tidy((0.3 * width) / px / AU);
-    c.strokeStyle = c.fillStyle = "rgba(236,241,250,0.9)";
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(14, height - 14);
-    c.lineTo(14 + bar * AU * px, height - 14);
-    c.stroke();
-    c.fillText(`${figure(bar)} AU`, 14, height - 20);
-  });
+      c.beginPath();
+      c.moveTo(14, height - 14);
+      c.lineTo(14 + bar * AU * px, height - 14);
+      c.stroke();
+      c.fillText(`${figure(bar)} AU`, 14, height - 20);
+      // Thousands of strokes: drawn again only when the picture changes.
+    },
+    [sky, reach, brushed],
+  );
   return (
     <div className="flat-view" data-testid="sky">
       <canvas ref={ref} role="img" aria-label={label} />
@@ -158,7 +162,7 @@ export function SkyView({
   engine,
   catalog,
   rest,
-}: SimulationProps & { catalog: Catalog }) {
+}: Omit<SimulationProps, "arrival"> & { catalog: Catalog }) {
   const [arrival] = useState(() => {
     const text = query(rest).get("seed");
     const seed = Number(text);

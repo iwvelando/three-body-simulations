@@ -6,6 +6,7 @@ package core
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 // When says under which setting of a simulation's master switch (for the
@@ -34,6 +35,8 @@ type Param struct {
 	// Basic parameters appear in the short panel; the rest sit under
 	// their model in the Models menu.
 	Basic bool `json:"basic,omitempty"`
+	// Whole marks a count: its control moves in whole numbers.
+	Whole bool `json:"whole,omitempty"`
 }
 
 // Model is one interchangeable description of an aspect of a simulation.
@@ -129,32 +132,48 @@ func (c *Catalog) Resolve(preset string, models map[string]string, params map[st
 	for k, v := range params {
 		out.Params[k] = v
 	}
-	for slot, id := range out.Models {
-		s, ok := slots[slot]
-		if !ok {
-			return out, &FieldError{"models." + slot, fmt.Sprintf("Unknown aspect %q.", slot)}
-		}
+	// Checked in the catalog's order, then whatever the catalog does not
+	// know by name, so the same request is always refused the same way.
+	for _, slot := range unknown(out.Models, func(id string) bool { return slots[id] != nil }) {
+		return out, &FieldError{"models." + slot, fmt.Sprintf("Unknown aspect %q.", slot)}
+	}
+	for i := range c.Slots {
+		s := &c.Slots[i]
+		id := out.Models[s.ID]
 		known := false
 		for _, m := range s.Models {
 			known = known || m.ID == id
 		}
 		if !known {
-			return out, &FieldError{"models." + slot, fmt.Sprintf("%s has no model %q.", s.Label, id)}
+			return out, &FieldError{"models." + s.ID, fmt.Sprintf("%s has no model %q.", s.Label, id)}
 		}
 	}
-	for id, v := range out.Params {
-		p, ok := specs[id]
-		if !ok {
-			return out, &FieldError{"params." + id, fmt.Sprintf("Unknown parameter %q.", id)}
-		}
+	for _, id := range unknown(out.Params, func(id string) bool { return specs[id] != nil }) {
+		return out, &FieldError{"params." + id, fmt.Sprintf("Unknown parameter %q.", id)}
+	}
+	for i := range c.Params {
+		p := &c.Params[i]
+		v := out.Params[p.ID]
 		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return out, &FieldError{"params." + id, p.Label + " must be a finite number."}
+			return out, &FieldError{"params." + p.ID, p.Label + " must be a finite number."}
 		}
 		if v < p.Min || v > p.Max {
-			return out, &FieldError{"params." + id, fmt.Sprintf("%s must be between %g and %g %s.", p.Label, p.Min, p.Max, p.Unit)}
+			return out, &FieldError{"params." + p.ID, fmt.Sprintf("%s must be between %g and %g %s.", p.Label, p.Min, p.Max, p.Unit)}
 		}
 	}
 	return out, nil
+}
+
+// unknown lists, by name, the keys the catalog does not have.
+func unknown[V any](given map[string]V, known func(string) bool) []string {
+	var out []string
+	for id := range given {
+		if !known(id) {
+			out = append(out, id)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // Check reports descriptor mistakes: duplicate or dangling identifiers and
@@ -171,6 +190,9 @@ func (c *Catalog) Check() error {
 		}
 		if p.Log && p.Min <= 0 {
 			return fmt.Errorf("parameter %s: logarithmic with a nonpositive minimum", p.ID)
+		}
+		if p.Whole && p.Default != math.Trunc(p.Default) {
+			return fmt.Errorf("parameter %s: whole, with a default of %g", p.ID, p.Default)
 		}
 		if p.Label == "" || p.Help == "" || p.When == "" {
 			return fmt.Errorf("parameter %s: missing label, help or when", p.ID)

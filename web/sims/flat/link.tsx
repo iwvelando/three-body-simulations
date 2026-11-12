@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { setAddress } from "../../shell/address";
 import type { Catalog } from "../../shell/catalog";
 import {
   decode,
@@ -45,7 +46,7 @@ export function useStudy(
   // Keep the address in step, without adding history entries.
   useEffect(() => {
     const hash = tail ? `${path}?${tail}` : path;
-    if (location.hash !== hash) history.replaceState(null, "", hash);
+    setAddress(hash);
     setCopied(false);
   }, [path, tail]);
   const change = useCallback((update: (s: Study) => Study) => {

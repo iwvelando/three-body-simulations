@@ -505,6 +505,10 @@ export function Machine({
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
     canvas.addEventListener("pointercancel", up);
+    // Drawn only when something changes, so drawn again when the browser
+    // gives back a drawing surface it took away.
+    const restored = () => (stale.current = true);
+    canvas.addEventListener("webglcontextrestored", restored);
 
     let frame = 0,
       frames = 0;

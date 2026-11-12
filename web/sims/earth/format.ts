@@ -28,8 +28,14 @@ export function pressure(bar: number): string {
   if (bar >= 1e-6) return `${Math.round(bar * 1e6)} ppm`;
   return "none";
 }
+// Always to two places, so readings line up; a trace too small for that
+// is said to be one rather than shown as nothing.
 export const oceans = (w: number) =>
-  w <= 0 ? "none" : `${w.toFixed(2).replace(/0$/, "")} oceans`;
+  w <= 0
+    ? "none"
+    : w < 0.005
+      ? "less than 0.01 oceans"
+      : `${w.toFixed(2)} oceans`;
 
 export { number } from "../../shell/catalog";
 

@@ -148,6 +148,10 @@ export function Terrain({ land, label }: { land: Land; label: string }) {
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
     canvas.addEventListener("pointercancel", up);
+    // The land is drawn only when it changes, so it must be drawn again
+    // when the browser gives back a drawing surface it took away.
+    const restored = () => (dirty.current = true);
+    canvas.addEventListener("webglcontextrestored", restored);
 
     let shown: Land | null = null;
     let frame = 0;

@@ -136,6 +136,13 @@ select {
 [hidden] {
   display: none !important;
 }
+/* Focus is moved here when a new page opens, so reading and tabbing start
+   at its top. It is not a control and shows no ring; iOS would draw one
+   for focus moved by script after a tap. */
+.view:focus,
+.view:focus-visible {
+  outline: none;
+}
 
 .masthead {
   display: flex;
@@ -370,10 +377,15 @@ button.primary {
   margin: 0 auto;
   display: grid;
   place-items: center;
-  touch-action: pan-y;
   cursor: grab;
   position: relative;
   overflow: hidden;
+}
+/* A drag on the globe turns and tilts it, so a touch that starts here
+   must never scroll the page. */
+.globe,
+.globe canvas {
+  touch-action: none;
 }
 .globe canvas {
   display: block;

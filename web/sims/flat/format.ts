@@ -18,7 +18,8 @@ export function length(km: number): string {
   if (km < 1e6) return `${figure(km)} km`;
   if (km < 0.2 * AU) return `${figure(km / 1e6)} million km`;
   if (km < 0.2 * lightYear) return `${figure(km / AU)} AU`;
-  return `${figure(km / lightYear)} light-years`;
+  const years = figure(km / lightYear);
+  return `${years} light-year${years === "1" ? "" : "s"}`;
 }
 
 export function duration(seconds: number): string {

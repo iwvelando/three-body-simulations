@@ -3,6 +3,7 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentType,
 } from "react";
@@ -14,14 +15,19 @@ const pages = new Map<string, ComponentType<SimulationProps>>(
   simulations.map((s) => [s.id, lazy(s.load)]),
 );
 
-function useHash(): string {
-  const [hash, setHash] = useState(() => location.hash);
+// The address, and how many times the visitor has arrived at one. A view
+// rewrites its own address as its settings change, which is not an
+// arrival; following a link, pasting one or going back is, even when it
+// leads to an address this page last saw.
+function useHash(): { hash: string; arrival: number } {
+  const [at, setAt] = useState(() => ({ hash: location.hash, arrival: 0 }));
   useEffect(() => {
-    const update = () => setHash(location.hash);
+    const update = () =>
+      setAt((was) => ({ hash: location.hash, arrival: was.arrival + 1 }));
     addEventListener("hashchange", update);
     return () => removeEventListener("hashchange", update);
   }, []);
-  return hash;
+  return at;
 }
 
 export function App() {
@@ -48,7 +54,7 @@ export function App() {
   // waits for a visitor to say they do not mind. Asked once a visit:
   // nothing but the theme is stored.
   const [warned, setWarned] = useState(false);
-  const hash = useHash();
+  const { hash, arrival } = useHash();
   const match = /^#\/([a-z0-9-]+)(.*)$/.exec(hash);
   const sim = match && simulations.find((s) => s.id === match[1]);
   const Page = sim ? pages.get(sim.id)! : null;
@@ -56,8 +62,28 @@ export function App() {
   useEffect(() => {
     document.title = sim
       ? `${sim.title} — Three-Body Simulations`
-      : "Three-Body Simulations — Earth without life";
+      : "Three-Body Simulations";
   }, [sim]);
+
+  // A page the visitor has not been to starts at its top, with the
+  // keyboard and a screen reader at its start too. Going back or forward
+  // is left to the browser, which remembers where the visitor was: each
+  // history entry is marked once it has been seen.
+  const view = useRef<HTMLDivElement>(null);
+  const path = hash.split("?")[0];
+  const first = useRef(true);
+  useEffect(() => {
+    const seen = history.state?.seen === true;
+    if (!seen)
+      history.replaceState({ ...history.state, seen: true }, "", location.href);
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (seen) return;
+    scrollTo(0, 0);
+    view.current?.focus({ preventScroll: true });
+  }, [path]);
 
   const body = useMemo(() => {
     if (failure)
@@ -69,14 +95,17 @@ export function App() {
           </button>
         </main>
       );
+    // The engine is made a moment after the first paint; a simulation
+    // asked for by its address waits for it rather than show the list.
+    if (Page && !engine) return <main className="page" aria-busy="true" />;
     if (Page && engine)
       return (
         <Suspense fallback={<main className="page" aria-busy="true" />}>
-          <Page engine={engine} rest={rest} />
+          <Page engine={engine} rest={rest} arrival={arrival} />
         </Suspense>
       );
     return <Home warned={warned} onWarned={() => setWarned(true)} />;
-  }, [failure, Page, engine, rest, warned]);
+  }, [failure, Page, engine, rest, arrival, warned]);
 
   return (
     <>
@@ -86,7 +115,9 @@ export function App() {
         </a>
         <Theme />
       </header>
-      {body}
+      <div className="view" ref={view} tabIndex={-1}>
+        {body}
+      </div>
       <footer className="colophon">
         <p>
           An unofficial fan project. Simulations inspired by scenes in Liu

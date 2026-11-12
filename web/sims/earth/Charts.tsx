@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useScrub } from "../../shell/scrub";
 import {
   ageNow,
   celsius,
@@ -130,12 +131,12 @@ function Chart({
   }, [measure, pair]);
 
   const at = (r: Result) => measure.value(r, indexAt(r, Math.max(age, from)));
-  const point = (e: React.PointerEvent) => {
+  const scrub = useScrub((clientX) => {
     const box = svg.current!.getBoundingClientRect();
-    const px = ((e.clientX - box.left) / box.width) * W;
+    const px = ((clientX - box.left) / box.width) * W;
     const t = from + ((px - left) / (W - left - right)) * (ageNow - from);
     onAge(Math.min(ageNow, Math.max(from, t)));
-  };
+  }, true);
   const cursor = drawn.x(Math.max(age, from));
   return (
     <figure className="chart">
@@ -158,13 +159,7 @@ function Chart({
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={`${measure.title} over time for the living and lifeless Earth`}
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          point(e);
-        }}
-        onPointerMove={(e) =>
-          (e.buttons || e.pointerType === "mouse") && point(e)
-        }
+        {...scrub}
       >
         {niceTicks(drawn.lo, drawn.hi, !!measure.log).map((v) => {
           const value = measure.log ? 10 ** v : v;

@@ -1,13 +1,17 @@
 import { useMemo, useRef, useState } from "react";
+import { useScrub } from "../../shell/scrub";
+import { useMedia } from "../../shell/useMedia";
 import { dayOf, days } from "./format";
 import type { Run } from "./types";
 
-const W = 720,
-  H = 230,
-  left = 34,
+const left = 34,
   right = 10,
   top = 10,
   bottom = 36;
+// The chart is drawn at about the size it is shown, so its figures stay
+// their own size: wide beside the settings, narrow on a phone. Keep the
+// width in step with the same one in style.css.
+const narrowQuery = "(max-width: 43.99rem)";
 
 // The clerk's record: how long each day lasted, with the eras the clerk
 // reads from it. Pointing at the chart moves the whole page to that day.
@@ -22,6 +26,9 @@ export function Calendar({
 }) {
   const [table, setTable] = useState(false);
   const svg = useRef<SVGSVGElement>(null);
+  const narrow = useMedia(narrowQuery);
+  const W = narrow ? 360 : 720,
+    H = narrow ? 200 : 230;
   const tolerance = run.choice.params["clerk.tolerance"];
   const drawn = useMemo(() => {
     const hours = run.calendar.length.map((d) => d * 24);
@@ -38,17 +45,19 @@ export function Calendar({
       most <= 48 ? 12 : most <= 120 ? 24 : Math.ceil(most / 96) * 24;
     const ticks = [];
     for (let h = 0; h <= most; h += every) ticks.push(h);
-    const stride = run.span <= 500 ? 100 : run.span <= 2500 ? 500 : 1000;
+    const stride =
+      (run.span <= 500 ? 100 : run.span <= 2500 ? 500 : 1000) *
+      (narrow ? 2 : 1);
     const marks = [];
     for (let d = 0; d <= run.span; d += stride) marks.push(d);
     return { x, y, path, ticks, marks };
-  }, [run]);
-  const point = (e: React.PointerEvent) => {
+  }, [run, W, H, narrow]);
+  const scrub = useScrub((clientX) => {
     const box = svg.current!.getBoundingClientRect();
     const share =
-      (((e.clientX - box.left) / box.width) * W - left) / (W - left - right);
+      (((clientX - box.left) / box.width) * W - left) / (W - left - right);
     onTime(Math.min(run.span, Math.max(0, share * run.span)));
-  };
+  }, false);
   const stable = run.eras.filter((e) => e.kind === "stable");
   return (
     <section className="calendar" aria-labelledby="calendar-title">
@@ -114,11 +123,7 @@ export function Calendar({
             viewBox={`0 0 ${W} ${H}`}
             role="img"
             aria-label="Length of each day across the calendar, with Stable and Chaotic Eras marked"
-            onPointerDown={(e) => {
-              e.currentTarget.setPointerCapture(e.pointerId);
-              point(e);
-            }}
-            onPointerMove={(e) => e.buttons > 0 && point(e)}
+            {...scrub}
           >
             {run.eras.map((e) => (
               <rect
@@ -201,7 +206,7 @@ export function Calendar({
       )}
       {stable.length > 0 && (
         <>
-          <h3 className="calendar-sub">Stable Eras ahead</h3>
+          <h3 className="calendar-sub">Stable Eras in this calendar</h3>
           <ul className="events" aria-label="Stable Eras">
             {stable.map((e) => (
               <li key={e.from}>

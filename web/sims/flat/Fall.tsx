@@ -2,19 +2,51 @@ import { useCallback, useMemo, useState } from "react";
 import { ball } from "./Ball";
 import { tidy, useCanvas } from "./canvas";
 import { bandColor, css, length, scatter } from "./format";
-import type { Run } from "./types";
+import type { Frames, Run } from "./types";
 
 // How long the light lingers after the last of the body has gone under,
 // as a share of the fall.
 export const afterglow = 0.3;
 
+// A fall's moments in order: the close-set ones up to the crossing, then
+// the evenly spaced ones after it. Read between these, the picture is
+// exactly as wide as what stands at the crossing, however early that is.
+const moments = new WeakMap<Run, Frames>();
+function momentsOf(run: Run): Frames {
+  let f = moments.get(run);
+  if (!f) {
+    const from = run.frames.time.findIndex((t) => t > run.crossing);
+    const join = <T,>(early: T[], rest: T[]) =>
+      from < 0 ? early : early.concat(rest.slice(from));
+    f = {
+      time: join(run.early.time, run.frames.time),
+      sink: join(run.early.sink, run.frames.sink),
+      foot: join(run.early.foot, run.frames.foot),
+      rim: join(run.early.rim, run.frames.rim),
+      bands: join(run.early.bands, run.frames.bands),
+    };
+    moments.set(run, f);
+  }
+  return f;
+}
+
 // The fall at a moment: 0 is first touch, 1 the last of the body gone.
 export function momentOf(run: Run, at: number) {
-  const f = run.frames,
+  const f = momentsOf(run),
     n = f.time.length - 1,
-    x = (at > 0 ? Math.min(1, at) : 0) * n,
-    i = Math.min(n - 1, Math.floor(x)),
-    w = x - i,
+    t = (at > 0 ? Math.min(1, at) : 0) * run.duration;
+  // The last moment at or before t.
+  let i = 0,
+    hi = n - 1;
+  while (i < hi) {
+    const mid = (i + hi + 1) >> 1;
+    if (f.time[mid] <= t) i = mid;
+    else hi = mid - 1;
+  }
+  const w = Math.min(
+      1,
+      Math.max(0, (t - f.time[i]) / (f.time[i + 1] - f.time[i])),
+    ),
     mix = (v: number[]) => v[i] + (v[i + 1] - v[i]) * w;
   return {
     time: mix(f.time),

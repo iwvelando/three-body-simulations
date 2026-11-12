@@ -4,6 +4,9 @@ import { useEffect, useRef } from "react";
 // shows changes. `draw` gets a context scaled to CSS pixels.
 export function useCanvas(
   draw: (c: CanvasRenderingContext2D, width: number, height: number) => void,
+  // What the drawing depends on, for one too costly to repeat on every
+  // render. Left out, it is drawn again whenever its owner renders.
+  shows?: unknown[],
 ) {
   const ref = useRef<HTMLCanvasElement>(null);
   const latest = useRef(draw);
@@ -34,8 +37,8 @@ export function useCanvas(
     watch.observe(canvas);
     return () => watch.disconnect();
   }, []);
-  // Every render may carry something new to show.
-  useEffect(() => paint.current());
+  // Every render may carry something new to show, unless told what does.
+  useEffect(() => paint.current(), shows);
   return ref;
 }
 

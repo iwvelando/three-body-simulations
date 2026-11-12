@@ -450,3 +450,57 @@ test("on a wide screen, Play leaves the page where it is", async ({ page }) => {
   ).not.toBe("fixed");
   await expect(page.getByTestId("dock-when")).toBeHidden();
 });
+
+test("a link pasted while the machine is open is read", async ({ page }) => {
+  await open(page);
+  await expect(verdict(page)).toContainText("11 Stable Eras");
+  await page.evaluate(() => {
+    location.hash = `#/mozi?c=${btoa(JSON.stringify({ v: 1, b: "clockwork" })).replace(/=+$/, "")}`;
+  });
+  await expect(verdict(page)).toContainText("one Stable Era");
+});
+
+test("the calendar's figures are readable at any width, and its list says what it lists", async ({
+  page,
+}) => {
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const tick = page.locator(".calendar-chart .tick").first();
+  await tick.scrollIntoViewIfNeeded();
+  // Nine-pixel type, drawn at no less than its own size.
+  expect((await tick.boundingBox())!.height).toBeGreaterThanOrEqual(9);
+  await expect(
+    page.getByRole("heading", { name: "Stable Eras in this calendar" }),
+  ).toBeVisible();
+});
+
+test("on a phone, scrolling past the calendar leaves the day alone, and a tap on it moves there", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== "chromium" || page.viewportSize()!.width >= 700,
+    "a synthesized touch on a phone",
+  );
+  await open(page);
+  await expect(verdict(page)).toBeVisible();
+  const when = moment(page).locator(".moment-when");
+  const day = await when.innerText();
+  const chart = page.locator(".calendar-chart svg");
+  await chart.scrollIntoViewIfNeeded();
+  const box = (await chart.boundingBox())!;
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.synthesizeScrollGesture", {
+    x: Math.round(box.x + box.width * 0.6),
+    y: Math.round(box.y + box.height / 2),
+    yDistance: -150,
+    gestureSourceType: "touch",
+    speed: 600,
+  });
+  await page.waitForTimeout(300);
+  await expect(when).toHaveText(day);
+  await chart.scrollIntoViewIfNeeded();
+  const now = (await chart.boundingBox())!;
+  await page.touchscreen.tap(now.x + now.width * 0.6, now.y + now.height / 2);
+  await expect(when).not.toHaveText(day);
+});

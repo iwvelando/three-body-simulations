@@ -145,3 +145,17 @@ test("each field shows its planets as dots", async ({ page }) => {
   expect(await filled(0)).toBeGreaterThan(10);
   expect(await filled(1)).toBeGreaterThan(1.5 * (await filled(0)));
 });
+
+test("a count is set and shown in whole numbers", async ({ page }) => {
+  await open(page, "#/earth/chance");
+  await done(page);
+  await page.getByText("More settings", { exact: true }).click();
+  const points = page.getByRole("slider", { name: "Most feedback points" });
+  await slide(points, 12.26);
+  await expect(
+    page
+      .locator(".field", { hasText: "Most feedback points" })
+      .locator("output"),
+  ).toHaveText("12");
+  expect(await points.getAttribute("step")).toBe("1");
+});

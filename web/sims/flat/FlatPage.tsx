@@ -12,7 +12,7 @@ import { Science } from "./Science";
 import { SkyView } from "./SkyView";
 import type { Catalog, PaintingCatalog, Run, Snow } from "./types";
 
-export default function FlatPage({ engine, rest }: SimulationProps) {
+export default function FlatPage({ engine, rest, arrival }: SimulationProps) {
   const [catalogs, setCatalogs] = useState<{
     bodies: Catalog;
     painting: PaintingCatalog;
@@ -39,14 +39,15 @@ export default function FlatPage({ engine, rest }: SimulationProps) {
     );
   if (!catalogs) return <main className="page" aria-busy="true" />;
   const view = rest.split("?")[0];
-  // A view reads the address once, on arrival. Keying it by the address
-  // makes a link followed from inside the page an arrival too.
+  // A view reads the address once, on arrival. Keying it by the arrival
+  // makes a link followed from inside the page one too, even a link to
+  // the address the page was first opened at.
   if (view.startsWith("/science"))
     return <Science catalog={catalogs.bodies} painting={catalogs.painting} />;
   if (view.startsWith("/painting"))
     return (
       <PaintingView
-        key={rest}
+        key={arrival}
         engine={engine}
         catalog={catalogs.painting}
         rest={rest}
@@ -55,7 +56,7 @@ export default function FlatPage({ engine, rest }: SimulationProps) {
   if (view.startsWith("/sky"))
     return (
       <SkyView
-        key={rest}
+        key={arrival}
         engine={engine}
         catalog={catalogs.bodies}
         rest={rest}
@@ -63,7 +64,7 @@ export default function FlatPage({ engine, rest }: SimulationProps) {
     );
   return (
     <BodyView
-      key={rest}
+      key={arrival}
       engine={engine}
       catalog={catalogs.bodies}
       rest={rest}
@@ -155,7 +156,7 @@ function BodyView({
   engine,
   catalog,
   rest,
-}: SimulationProps & { catalog: Catalog }) {
+}: Omit<SimulationProps, "arrival"> & { catalog: Catalog }) {
   // The address is read once, on arrival.
   const [arrival] = useState(() => {
     const asked = query(rest).get("body");

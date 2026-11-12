@@ -19,9 +19,7 @@ for (const file of [
   if (!existsSync(`dist/${file}`) || !statSync(`dist/${file}`).size)
     throw Error(`Missing distribution artifact: ${file}`);
 const html = readFileSync("dist/index.html", "utf8");
-if (
-  !html.includes("<title>Three-Body Simulations — Earth without life</title>")
-)
+if (!html.includes("<title>Three-Body Simulations</title>"))
   throw Error("Missing metadata");
 // The only absolute URLs are the site's own, for link previews and crawlers.
 const site = "https://three-body.isaacvelando.com/";

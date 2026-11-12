@@ -1,7 +1,7 @@
-import { number, type Param } from "./catalog";
+import { number, scale, type Param } from "./catalog";
 
-// A slider described entirely by its descriptor. Logarithmic parameters
-// slide in log10; the readout always shows the value itself.
+// A slider described entirely by its descriptor (see `scale`). The
+// readout always shows the value itself.
 export function Slider({
   spec,
   value,
@@ -13,10 +13,7 @@ export function Slider({
   disabled: boolean;
   onChange: (v: number) => void;
 }) {
-  const to = (v: number) => (spec.log ? Math.log10(v) : v);
-  const from = (v: number) =>
-    Math.min(spec.max, Math.max(spec.min, spec.log ? 10 ** v : v));
-  const span = to(spec.max) - to(spec.min);
+  const { min, max, step, to, from } = scale(spec);
   return (
     <div className={`field${disabled ? " off" : ""}`}>
       <div className="field-head">
@@ -29,9 +26,9 @@ export function Slider({
       <input
         type="range"
         aria-label={spec.label}
-        min={to(spec.min)}
-        max={to(spec.max)}
-        step={span / 200}
+        min={min}
+        max={max}
+        step={step}
         value={to(value)}
         disabled={disabled}
         onChange={(e) => onChange(from(Number(e.target.value)))}
