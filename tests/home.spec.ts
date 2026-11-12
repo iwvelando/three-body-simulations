@@ -50,3 +50,39 @@ test("the home page describes all the simulations and says where the source is",
   );
   await expect(about).toContainText("unofficial");
 });
+
+test("each simulation in the list has a picture of its own", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await ready(page);
+  await page.getByRole("button", { name: /show the simulations/i }).click();
+  const links = page.locator(".sims a");
+  await expect(links).toHaveCount(3);
+  const drawings: string[] = [];
+  for (const link of await links.all()) {
+    const icon = link.locator("svg.sim-icon");
+    await expect(icon).toBeVisible();
+    // Decoration: the link is still named by its words alone.
+    await expect(icon).toHaveAttribute("aria-hidden", "true");
+    const box = (await icon.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(40);
+    expect(box.height).toBeCloseTo(box.width, 0);
+    // The picture sits beside the words, inside the card.
+    const card = (await link.boundingBox())!;
+    const title = (await link.locator(".sim-title").boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(card.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(title.x);
+    drawings.push(await icon.innerHTML());
+  }
+  expect(new Set(drawings).size).toBe(3);
+  await expect(
+    page.getByRole("link", { name: /^Earth without life/ }),
+  ).toBeVisible();
+  // Nothing spills past the edge of a phone.
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});

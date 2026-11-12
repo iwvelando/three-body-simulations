@@ -1,9 +1,10 @@
 import type { ComponentType } from "react";
 import type { Engine } from "./engine";
+import { EarthIcon, FlatIcon, MoziIcon } from "./icons";
 
 // A simulation is a page of its own, loaded only when opened. To add one:
 // write its engine package in Go (engine/<id>), register it in
-// engine/api.go, and add an entry here.
+// engine/api.go, and add an entry here, with a picture in icons.tsx.
 export type SimulationProps = {
   engine: Engine;
   // The part of the address after "#/<id>", such as "/models" or "?c=…".
@@ -19,6 +20,8 @@ export type Simulation = {
   // Where in the trilogy the simulation appears.
   source: string;
   blurb: string;
+  // A small picture for the home page's list (icons.tsx).
+  icon: ComponentType;
   load: () => Promise<{ default: ComponentType<SimulationProps> }>;
 };
 
@@ -29,6 +32,7 @@ export const simulations: Simulation[] = [
     source: "Death's End",
     blurb:
       "Uncheck Life and run the planet's four and a half billion years again. Does it keep its oceans?",
+    icon: EarthIcon,
     load: () => import("../sims/earth/EarthPage"),
   },
   {
@@ -37,6 +41,7 @@ export const simulations: Simulation[] = [
     source: "The Three-Body Problem",
     blurb:
       "The universe as two copper shells in a sea of fire. Stand where the clerk stands and read the calendar of Stable and Chaotic Eras.",
+    icon: MoziIcon,
     load: () => import("../sims/mozi/MoziPage"),
   },
   {
@@ -45,6 +50,7 @@ export const simulations: Simulation[] = [
     source: "Death's End",
     blurb:
       "Space loses a dimension and everything falls flat. Drop in the Sun, a planet or a picture of your own, and see what is left.",
+    icon: FlatIcon,
     load: () => import("../sims/flat/FlatPage"),
   },
 ];
