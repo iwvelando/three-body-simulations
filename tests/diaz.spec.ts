@@ -450,3 +450,151 @@ test("the timeline stays put when a stretch is drawn slowed", async ({
   await expect(note).toContainText("drawn slowed");
   expect(await top()).toBe(before);
 });
+
+// A study as a link carries it.
+const study = (body: object) =>
+  Buffer.from(JSON.stringify({ v: 1, ...body })).toString("base64url");
+// The names shown inside the view, with where each is drawn.
+const names = (page: Page) =>
+  page.getByTestId("system").evaluate((el) => {
+    const view = el.getBoundingClientRect();
+    return [...el.querySelectorAll<HTMLElement>(".system-names span")]
+      .filter((s) => !s.hidden)
+      .map((s) => {
+        const r = s.getBoundingClientRect();
+        return {
+          name: s.textContent ?? "",
+          left: r.left,
+          right: r.right,
+          top: r.top,
+          bottom: r.bottom,
+          inside:
+            r.right > view.left &&
+            r.left < view.right &&
+            r.bottom > view.top &&
+            r.top < view.bottom,
+        };
+      });
+  });
+
+test("a planet behind the viewer is not named in front of them", async ({
+  page,
+}) => {
+  await open(page, "#/diaz?look=sun");
+  const system = page.getByTestId("system");
+  await system.focus();
+  const turned = async (yaw: number, pitch: number) =>
+    expect(system).toHaveAttribute(
+      "data-turn",
+      `${yaw.toFixed(3)} ${pitch.toFixed(3)}`,
+    );
+  // Tilt down to look along the planets' plane.
+  for (let i = 0; i < 9; i++) await page.keyboard.press("ArrowDown");
+  await turned(0.5, 0.08);
+  // This close to the Sun every planet is farther off than the viewer
+  // is, so none can be in front of the viewer from one side and also
+  // from the opposite side. Walk once round and compare each view with
+  // the one half a turn on.
+  const seen: string[][] = [];
+  for (let i = 0; i <= 62; i++) {
+    if (i > 0) {
+      await page.keyboard.press("ArrowLeft");
+      await turned(0.5 + i * 0.1, 0.08);
+    }
+    seen.push(
+      (await names(page))
+        .filter((n) => n.inside && n.name !== "The Sun")
+        .map((n) => n.name),
+    );
+  }
+  for (let i = 0; i + 31 < seen.length; i++)
+    expect(
+      seen[i].filter((name) => seen[i + 31].includes(name)),
+      `named from both sides, at steps ${i} and ${i + 31}`,
+    ).toEqual([]);
+});
+
+test("names in the view do not lie over one another", async ({ page }) => {
+  for (const hash of ["#/diaz", "#/diaz?look=inner"]) {
+    await open(page, hash);
+    // The names are placed when the view is first drawn.
+    const inside = async () => (await names(page)).filter((n) => n.inside);
+    await expect.poll(async () => (await inside()).length).toBeGreaterThan(1);
+    const shown = await inside();
+    for (const a of shown)
+      for (const b of shown)
+        if (a.name < b.name)
+          expect(
+            a.right <= b.left ||
+              b.right <= a.left ||
+              a.bottom <= b.top ||
+              b.bottom <= a.top,
+            `${hash}: ${a.name} and ${b.name} overlap`,
+          ).toBe(true);
+  }
+});
+
+test("the whole system fits however far the gas goes, within the zoom's range", async ({
+  page,
+}) => {
+  await open(
+    page,
+    "#/diaz?c=" + study({ b: "plan", p: { "cloud.reach": 10 } }),
+  );
+  const system = page.getByTestId("system");
+  const time = page.getByRole("slider", { name: "Time" });
+  await slide(time, Number(await time.getAttribute("max")));
+  const moment = page.getByTestId("moment");
+  await expect(moment).toContainText("0 of 8");
+  const reach = Number(
+    /Gas reaches\s*([\d.]+) AU/.exec(await moment.innerText())![1],
+  );
+  expect(reach).toBeGreaterThan(150);
+  const span = async () => Number(await system.getAttribute("data-span"));
+  const wide = await span();
+  // All of the gas is in view.
+  expect(wide).toBeGreaterThanOrEqual(2 * reach);
+  // The slider can show where the view is.
+  const zoom = page.getByRole("slider", { name: "Zoom" });
+  const widest = 10 ** -Number(await zoom.getAttribute("min"));
+  expect(wide).toBeLessThanOrEqual(widest * (1 + 1e-9));
+  // Zooming by hand goes on from there and does not jump inward.
+  await system.focus();
+  await page.keyboard.press("+");
+  await expect.poll(span).toBeCloseTo(wide * 0.8, 3);
+});
+
+test("the account gives the Earth's troubles in order and both counts of bombs", async ({
+  page,
+}) => {
+  await open(page);
+  const steps = page.getByTestId("steps");
+  // Touching the Sun and the deeper fall of this run are told apart.
+  await expect(steps).toContainText(
+    /touch the Sun\..*57\.4 trillion bombs.*34\.5 km\/s.*60\.5 trillion/s,
+  );
+  await expect(verdict(page)).toContainText("60.5 trillion");
+  // The sea, at 603 days, comes before the air, at 2.2 years.
+  await expect(steps).toContainText(/603 days.*boil the sea.*2\.2 years.*air/s);
+});
+
+test("a Sun with nothing left sends out no more gas, and the page says who is spared", async ({
+  page,
+}) => {
+  const problems = await open(
+    page,
+    "#/diaz?c=" + study({ b: "plan", p: { "eruption.gain": 1e6 } }),
+  );
+  await expect(verdict(page)).toContainText("4 of the other 7 planets follow");
+  await expect(verdict(page)).toContainText("more than the Sun holds");
+  const time = page.getByRole("slider", { name: "Time" });
+  await slide(time, Number(await time.getAttribute("max")));
+  const moment = page.getByTestId("moment");
+  await expect(moment).toContainText("3 of 8");
+  await expect(moment).toContainText("6.78 AU");
+  const fates = page.getByTestId("fates");
+  await expect(fates.getByRole("row", { name: /Saturn/ })).toContainText(
+    "The gas never reaches it",
+  );
+  expect(problems).toEqual([]);
+});

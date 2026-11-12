@@ -362,6 +362,116 @@ func TestPublishedEjectaNeverExceedTheEnergyOfTheFall(t *testing.T) {
 	}
 }
 
+// However slowly the gas is thrown, the published impact never throws out
+// more than the impactor: gas that does not leave the Sun is not counted
+// as cheaper to lift than gas that does.
+func TestPublishedEjectaNeverOutweighWhatFellAtAnySpeed(t *testing.T) {
+	mercury := body("mercury").Mass
+	for _, speed := range []float64{0.5, 0.75, 1, 1.5} {
+		for _, spread := range []float64{0, 0.1, 0.5} {
+			for _, cloud := range []string{"free", "standing"} {
+				r := mustRun(t, Request{Preset: "granted", Models: map[string]string{"cloud": cloud},
+					Params: map[string]float64{"ejecta.speed": speed, "ejecta.spread": spread}})
+				if r.Impact.Ejecta > mercury || r.Impact.Ejecta > r.Impact.Bound*(1+1e-9) || r.Impact.Ejecta <= 0 {
+					t.Errorf("speed %g, spread %g, %s: %g kg thrown out by %g kg, which could lift %g kg",
+						speed, spread, cloud, r.Impact.Ejecta, mercury, r.Impact.Bound)
+				}
+			}
+		}
+	}
+	// Faster gas costs more a kilogram: at 1.5 of escape speed the energy
+	// buys 1/1.5² of what it does at escape speed.
+	fast := mustRun(t, Request{Preset: "granted", Params: map[string]float64{"ejecta.speed": 1.5, "ejecta.spread": 0}})
+	near(t, "ejecta at 1.5 of escape speed over the bound", fast.Impact.Ejecta/fast.Impact.Bound, 1/2.25, 1e-9)
+}
+
+// Gas at exactly escape speed never comes back, so it is counted with
+// the gas that leaves, not with the gas that falls.
+func TestGasAtEscapeSpeedIsCountedAsLeaving(t *testing.T) {
+	r := mustRun(t, Request{Preset: "granted", Params: map[string]float64{"ejecta.speed": 1, "ejecta.spread": 0}})
+	if r.Impact.Escaping != 1 {
+		t.Errorf("escaping share %g, want 1", r.Impact.Escaping)
+	}
+	// It is seen passing the Earth, which says the same.
+	for _, f := range r.Fates {
+		if f.ID == "earth" && f.Nudge <= 0 {
+			t.Error("gas at escape speed reaches the Earth's orbit")
+		}
+	}
+	slow := mustRun(t, Request{Preset: "granted", Params: map[string]float64{"ejecta.speed": 0.99, "ejecta.spread": 0}})
+	if slow.Impact.Escaping != 0 {
+		t.Errorf("just under escape speed: escaping share %g, want 0", slow.Impact.Escaping)
+	}
+}
+
+// Once the Sun has nothing left to give, a planet that falls in throws
+// out no gas: no parcels are laid out for it and the edge stays put.
+func TestAnEmptiedSunThrowsNothingMore(t *testing.T) {
+	r := mustRun(t, Request{Preset: "plan", Params: map[string]float64{"eruption.gain": 1e6}})
+	if !r.Exhausted {
+		t.Fatal("an eruption a million strong asks for more than the Sun holds")
+	}
+	near(t, "all the gas over the Sun's mass", r.CloudMass/sunMass, 1, 1e-9)
+	empty := 0
+	for k, f := range r.Flows {
+		if f.Mass > 0 {
+			if f.Count == 0 {
+				t.Errorf("%s threw %g kg and shows none of it", f.Body, f.Mass)
+			}
+			continue
+		}
+		empty++
+		if f.Count != 0 {
+			t.Errorf("%s threw nothing and shows %d parcels of gas", f.Body, f.Count)
+		}
+		if f.Edge != r.Flows[k-1].Edge {
+			t.Errorf("%s threw nothing and moved the edge from %g to %g AU", f.Body, r.Flows[k-1].Edge, f.Edge)
+		}
+		if r.Chapters[f.Chapter].Flow != "" {
+			t.Errorf("%s threw nothing, and its chapter says gas is leaving the Sun", f.Body)
+		}
+	}
+	if empty == 0 {
+		t.Error("some planet falls after the Sun is empty")
+	}
+	// Each planet that falls still has a chapter of its own, and the gas,
+	// stopped short of Saturn, never reaches the planets beyond it.
+	fallen := 0
+	for _, f := range r.Fates {
+		switch f.ID {
+		case "saturn", "uranus", "neptune":
+			if f.Fate != "beyond" {
+				t.Errorf("%s: %s, want beyond the gas", f.ID, f.Fate)
+			}
+		default:
+			if f.Fate != "falls" {
+				t.Errorf("%s: %s, want falls", f.ID, f.Fate)
+			}
+			fallen++
+		}
+	}
+	if len(r.Flows) != 1+fallen {
+		t.Errorf("%d flows, want Mercury's and %d more", len(r.Flows), fallen)
+	}
+	if last := r.Edge[len(r.Edge)-1]; last >= 9 {
+		t.Errorf("the gas ends %g AU out, past Saturn", last)
+	}
+}
+
+// Frames are in order of time, across chapters as well as within them.
+func TestTimeNeverRunsBackwards(t *testing.T) {
+	for _, params := range []map[string]float64{
+		{}, {"cloud.speed": 1}, {"cloud.speed": 500, "cloud.reach": 10, "cloud.flare": 0.01, "eruption.gain": 1},
+	} {
+		r := mustRun(t, Request{Preset: "plan", Params: params})
+		for i := 1; i < len(r.Time); i++ {
+			if r.Time[i] < r.Time[i-1] {
+				t.Errorf("%v: frame %d is at %v s, before frame %d at %v s", params, i, r.Time[i], i-1, r.Time[i-1])
+			}
+		}
+	}
+}
+
 // The novel's arithmetic, against NASA's masses.
 func TestTheNovelsRatios(t *testing.T) {
 	r := mustRun(t, Request{})

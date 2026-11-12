@@ -31,14 +31,17 @@ export type Look = (typeof looks)[number];
 export function spanOf(look: Look, moment: Moment): number {
   if (look === "sun") return 0.14;
   if (look === "inner") return 2 * Math.max(1.9, Math.min(4, moment.edge));
-  return 2 * Math.max(33, moment.edge * 1.05);
+  return clampSpan(2 * Math.max(33, moment.edge * 1.05));
 }
 
-// How far across the view may show, in AU.
+// How far across the view may show, in AU. The widest holds the gas at
+// its farthest: with the spiral's reach at its most and every planet
+// fallen, the edge is 177 AU out.
 export const nearest = 0.03,
-  farthest = 250;
-export const clampSpan = (span: number) =>
-  Math.min(farthest, Math.max(nearest, span));
+  farthest = 400;
+export function clampSpan(span: number) {
+  return Math.min(farthest, Math.max(nearest, span));
+}
 
 // Nothing here is to scale: at the scale of the orbits every body is
 // too small to see. Each is drawn at a share of the view's width, never
@@ -222,7 +225,11 @@ function build(bodies: Body[]): Stage {
           );
         }
         at.set(place[0], place[1], place[2]).project(camera);
-        return { x: (at.x + 1) / 2, y: (1 - at.y) / 2, shown: true };
+        // A body behind the viewer still projects onto the picture,
+        // mirrored; only one in front of them, in the depth drawn, is
+        // somewhere a name can be put.
+        const ahead = at.z > -1 && at.z < 1;
+        return { x: (at.x + 1) / 2, y: (1 - at.y) / 2, shown: ahead };
       });
 
       run.flows.forEach((flow, k) => {
@@ -499,6 +506,9 @@ export function System(props: Props) {
       const labels = names.current?.children;
       if (!labels) return;
       const sun = marks[0];
+      // Names already placed; one that would lie over another is left
+      // out, the Sun's first and then the planets' from the inside out.
+      const placed: DOMRect[] = [];
       marks.forEach((mark, b) => {
         const label = labels[b] as HTMLElement | undefined;
         if (!label) return;
@@ -508,6 +518,16 @@ export function System(props: Props) {
         label.hidden = !mark.shown || !room;
         label.style.left = `${(mark.x * 100).toFixed(2)}%`;
         label.style.top = `${(mark.y * 100).toFixed(2)}%`;
+        if (label.hidden) return;
+        const box = label.getBoundingClientRect();
+        label.hidden = placed.some(
+          (other) =>
+            box.left < other.right &&
+            other.left < box.right &&
+            box.top < other.bottom &&
+            other.top < box.bottom,
+        );
+        if (!label.hidden) placed.push(box);
       });
     };
     tick();

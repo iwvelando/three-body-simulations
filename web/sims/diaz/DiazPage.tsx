@@ -505,11 +505,11 @@ function Steps({ run, label }: { run: Run; label: Label }) {
       <ol>
         <li>
           <strong>The bombs.</strong> At its farthest from the Sun, Mercury must
-          lose {speed(run.needed)} for its path to touch the Sun. The bombs take
-          off {speed(run.delivered)}. Only rock thrown clear of Mercury pushes
-          it, so even with every joule spent on that, the fall needs{" "}
-          {count(run.bombsNeeded)} bombs of {megatons(run)}. The novel's plan
-          has a million, and says itself that they are far from enough.
+          lose {speed(run.needed)} for its path to touch the Sun. Only rock
+          thrown clear of Mercury pushes it, so even with every joule spent on
+          that, it would take {count(run.bombsNeeded)} bombs of {megatons(run)}.{" "}
+          {pushed(run)} The novel's plan has a million, and says itself that
+          they are far from enough.
         </li>
         {!impact && (
           <li>
@@ -557,13 +557,7 @@ function Steps({ run, label }: { run: Run; label: Label }) {
             </li>
             {run.airGone || run.seaGone ? (
               <li>
-                <strong>The Earth.</strong>{" "}
-                {run.airGone
-                  ? `${span(run.airGone)} after the push it has met as much gas as it has air. `
-                  : ""}
-                {run.seaGone
-                  ? `${span(run.seaGone)} after the push, drag has given it the heat to boil the sea away, if all of that heat went into the sea.`
-                  : ""}
+                <strong>The Earth.</strong> {earth(run).join(" ")}
               </li>
             ) : null}
           </>
@@ -577,6 +571,35 @@ function Steps({ run, label }: { run: Run; label: Label }) {
       </ol>
     </section>
   );
+}
+
+// What the bombs of this run take off, set against what touching the
+// Sun asks for.
+function pushed(run: Run): string {
+  const took = `The bombs here take off ${speed(run.delivered)}`;
+  if (run.choice.models.bombs === "charges") return `${took}.`;
+  // The plan's bombs do whatever its path needs, and a path that goes
+  // deeper than a graze needs more.
+  const bombs = (run.bombsNeeded * run.delivered) / run.needed;
+  return run.delivered > run.needed * 1.0005
+    ? `${took}, more than that, to send Mercury deeper than a graze: ${count(bombs)} of them.`
+    : `${took}, exactly that.`;
+}
+
+// The Earth's two troubles, the earlier first.
+function earth(run: Run): string[] {
+  const told: [number, string][] = [];
+  if (run.seaGone)
+    told.push([
+      run.seaGone,
+      `${span(run.seaGone)} after the push, drag has given it the heat to boil the sea away, if all of that heat went into the sea.`,
+    ]);
+  if (run.airGone)
+    told.push([
+      run.airGone,
+      `${span(run.airGone)} after the push it has met as much gas as it has air.`,
+    ]);
+  return told.sort((a, b) => a[0] - b[0]).map(([, text]) => text);
 }
 
 // The orbit a distance has passed, for scale.

@@ -74,7 +74,8 @@ type Chapter struct {
 	Slowed bool `json:"slowed,omitempty"`
 	// Body is whose fall the chapter leads to or follows.
 	Body string `json:"body,omitempty"`
-	// Flow says gas is leaving the Sun in this chapter.
+	// Flow says whose impact is sending gas out of the Sun in this
+	// chapter; empty if none is.
 	Flow string `json:"flow,omitempty"`
 }
 
@@ -82,6 +83,8 @@ type Chapter struct {
 // numbers each) start at Dirs in the numbers beside the reply, and
 // their distances from the Sun in AU, one row per frame of its chapter,
 // at Radii. A distance of zero is gas not yet out or back in the Sun.
+// A planet that falls into a Sun with nothing left to give has a flow
+// with no parcels.
 type Flow struct {
 	Body    string `json:"body"`
 	Chapter int    `json:"chapter"`
@@ -376,9 +379,12 @@ func Run(q Request) (*Result, error) {
 	im.Deep = im.Depth < convectionBase
 	out.Impact = im
 	sunLeft := sunMass
-	// thrown is the gas an impact of a given energy sends out.
+	// thrown is the gas an impact of a given energy sends out. Gas slower
+	// than escape speed is costed as if it were lifted clear of the Sun,
+	// so the published impact never throws out more than its energy could
+	// lift out.
 	thrown := func(energy, mean float64) float64 {
-		m := P["ejecta.share"] * energy / (lift * mean)
+		m := P["ejecta.share"] * energy / (lift * math.Max(1, mean))
 		if c.Models["impact"] == "eruption" {
 			m = P["eruption.gain"] * energy / lift
 		}
@@ -400,7 +406,8 @@ func Run(q Request) (*Result, error) {
 		for j := range shares {
 			shares[j] = P["ejecta.speed"] * (1 - P["ejecta.spread"] + 2*P["ejecta.spread"]*(float64(j)+0.5)/parcels)
 			square += shares[j] * shares[j] / parcels
-			if shares[j] > 1 {
+			// Gas at escape speed itself never comes back, as radial has it.
+			if shares[j] >= 1-1e-9 {
 				away++
 			}
 		}
@@ -495,16 +502,20 @@ func Run(q Request) (*Result, error) {
 	// spiral lays out one impact's gas: parcels leave the turning site
 	// one after another, move out at the unwinding speed, and stop when
 	// the last has left.
-	spiral := func(who string, when, start float64, site [3]float64, from, to float64, sizes func(t float64) [9]float64, places func(t float64, i int) [9][3]float64) float64 {
+	spiral := func(who string, count int, when, start float64, site [3]float64, from, to float64, sizes func(t float64) [9]float64, places func(t float64, i int) [9][3]float64) float64 {
 		held = false
 		length := to / outward
-		flow := Flow{Body: who, Count: parcels, Time: when, Stays: true, Edge: to / au}
-		flow.Chapter = r.open(Chapter{ID: "answer", Start: start, End: start + length, Body: who, Flow: who})
-		starts := make([]float64, parcels)
+		flow := Flow{Body: who, Count: count, Time: when, Stays: true, Edge: to / au}
+		leaving := who
+		if count == 0 {
+			leaving = ""
+		}
+		flow.Chapter = r.open(Chapter{ID: "answer", Start: start, End: start + length, Body: who, Flow: leaving})
+		starts := make([]float64, count)
 		var dirs, radii []float32
 		axis := [3]float64{0, -math.Sin(sunTilt), math.Cos(sunTilt)}
 		for j := range starts {
-			starts[j] = length * (float64(j) + 0.5) / parcels
+			starts[j] = length * (float64(j) + 0.5) / float64(count)
 			d := turn(site, spin*starts[j])
 			lift, slip := flare*(2*random.next()-1), 0.02*(2*random.next()-1)
 			d = unit(turn([3]float64{d[0] + lift*axis[0], d[1] + lift*axis[1], d[2] + lift*axis[2]}, slip))
@@ -512,6 +523,10 @@ func Run(q Request) (*Result, error) {
 		}
 		for i := 0; i <= n; i++ {
 			since := length * float64(i) / float64(n)
+			if i == n {
+				// Exactly, as in drift below.
+				since = length
+			}
 			for _, s := range starts {
 				at := 0.0
 				if since > s {
@@ -533,7 +548,7 @@ func Run(q Request) (*Result, error) {
 		sizes[1] = 0
 		return sizes
 	}
-	cursor := spiral("mercury", span, span, site, 0, edge, still, func(t float64, _ int) [9][3]float64 {
+	cursor := spiral("mercury", parcels, span, span, site, 0, edge, still, func(t float64, _ int) [9][3]float64 {
 		at, _ := sky(t, nil)
 		return at
 	})
@@ -599,10 +614,13 @@ func Run(q Request) (*Result, error) {
 				// It arrives on a circle, at the speed of an orbit that
 				// skims the surface: half the energy of a straight fall.
 				arrived := 0.5 * p.Mass * sunGM / sunRadius
-				total += arrived
 				falls = append(falls, fall{b: b, t: now.t + step, before: was})
-				thrown(arrived, 1)
-				edge = reach()
+				// An emptied Sun has no gas to send out, and with none the
+				// edge stays where it is.
+				if thrown(arrived, 1) > 0 {
+					total += arrived
+					edge = reach()
+				}
 				out.Flows = append(out.Flows, Flow{Body: p.ID, Time: now.t + step, Mass: out.CloudMass, Edge: edge / au})
 			}
 		}
@@ -697,6 +715,11 @@ func Run(q Request) (*Result, error) {
 		at := r.open(Chapter{ID: "drag", Start: cursor, End: until, Body: who})
 		for i := 0; i <= n; i++ {
 			t := cursor + (until-cursor)*float64(i)/float64(n)
+			if i == n {
+				// Exactly, so that rounding never puts the chapter's end
+				// after the start of the next.
+				t = until
+			}
 			r.frame(t, move(t, i), sizes(t), reached(out))
 		}
 		r.close()
@@ -708,13 +731,18 @@ func Run(q Request) (*Result, error) {
 			drift(f.t, bodies[f.b].ID)
 		}
 		where := unit(carried[f.b].at())
-		cursor = spiral(bodies[f.b].ID, f.t, cursor, where, f.before, found[k].Edge*au, sizes, move)
 		added := found[k].Mass
 		if k > 0 {
 			added -= found[k-1].Mass
 		} else {
 			added -= im.Ejecta
 		}
+		// A fall that threw out no gas has none to show.
+		count := parcels
+		if added <= 0 {
+			added, count = 0, 0
+		}
+		cursor = spiral(bodies[f.b].ID, count, f.t, cursor, where, f.before, found[k].Edge*au, sizes, move)
 		out.Flows[len(out.Flows)-1].Mass = added
 	}
 	for _, f := range out.Fates {

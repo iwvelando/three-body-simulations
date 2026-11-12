@@ -52,7 +52,7 @@ var catalog = &SystemCatalog{
 			{ID: "ejecta.share", Label: "Energy that goes into thrown gas", Unit: "", Min: 0.01, Max: 1, Default: 1, Log: true,
 				Help: "The share of the impact's energy that ends up as gas moving outward. The rest stays in the Sun as heat.", When: core.Always},
 			{ID: "ejecta.speed", Label: "Speed of the thrown gas", Unit: "× escape speed", Min: 0.5, Max: 1.5, Default: 1,
-				Help: "The middle speed of the gas as it leaves, against the 618 km/s needed to escape the Sun.", When: core.Always},
+				Help: "The middle speed of the gas as it leaves, against the 618 km/s needed to escape the Sun. Slower gas is not counted as cheaper to throw.", When: core.Always},
 			{ID: "ejecta.spread", Label: "Spread of speeds", Unit: "", Min: 0, Max: 0.5, Default: 0.1,
 				Help: "How far above and below the middle speed the gas ranges, as a share of it.", When: core.Always},
 			{ID: "eruption.gain", Label: "Strength of the eruption", Unit: "×", Min: 1, Max: 1e6, Default: 1000, Log: true, Basic: true,

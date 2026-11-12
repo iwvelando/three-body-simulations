@@ -143,9 +143,10 @@ export function Science({ catalog }: { catalog: Catalog }) {
         <p>
           <strong>The Wallbreaker's telling.</strong> With an eruption a
           thousand times what the impact pays for, the spiral reaches 3.3 times
-          the Earth's distance, past Mars. Within three years the Earth has met
-          its own air's mass in gas. Venus falls after 167,000 years, and that
-          one impact carries the gas past Jupiter. Jupiter is then next, not the
+          the Earth's distance, past Mars. Within two years drag has given the
+          Earth the heat to boil its sea, and within three it has met its own
+          air's mass in gas. Venus falls after 167,000 years, and that one
+          impact carries the gas past Jupiter. Jupiter is then next, not the
           Earth: the pull of its own wake counts for far more than friction, and
           it falls after 195,000 years, the Earth and Mars just behind it.
           Neptune is last, after 209,000 years. By then two thirds of the Sun's
